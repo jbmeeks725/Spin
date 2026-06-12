@@ -2,8 +2,9 @@
 
 // 1. CONFIG: fill these with your project values
 const SUPABASE_URL = "https://wdgiskawukblqgapkmig.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndkZ2lza2F3dWtibHFnYXBrbWlnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMTIyODIsImV4cCI6MjA5Njc4ODI4Mn0.wt93Mf8TuzjFppmxNjrlPNoj4vnBplTafqBQcN1MoEo";
+const SUPABASE_ANON_KEY = "sb_publishable_KkcpYXwoOXi2XVv-UqIoiw_5G8q21CT";
 const UPLOAD_COVER_FUNCTION_URL = "https://wdgiskawukblqgapkmig.supabase.co/functions/v1/upload-cover";
+const DISCOGS_LOOKUP_FUNCTION_URL = "https://wdgiskawukblqgapkmig.supabase.co/functions/v1/discogs-lookup";
 
 // 2. Create Supabase client
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -330,6 +331,120 @@ function buildRatingControls(record) {
 
 // ------------ Add Record ------------
 
+let pendingScannedCoverUrl = null;
+let html5QrCode = null;
+
+async function startBarcodeScan() {
+  const scannerWrap = document.getElementById("scannerWrap");
+  const scanStatus = document.getElementById("scanStatus");
+  const scanBtn = document.getElementById("scanBarcodeBtn");
+
+  scanStatus.textContent = "";
+  scanStatus.className = "form-status";
+  scannerWrap.hidden = false;
+  scanBtn.hidden = true;
+
+  html5QrCode = new Html5Qrcode("scannerVideo");
+
+  const config = {
+    fps: 10,
+    qrbox: { width: 250, height: 150 },
+    formatsToSupport: [
+      Html5QrcodeSupportedFormats.EAN_13,
+      Html5QrcodeSupportedFormats.EAN_8,
+      Html5QrcodeSupportedFormats.UPC_A,
+      Html5QrcodeSupportedFormats.UPC_E,
+    ],
+  };
+
+  try {
+    await html5QrCode.start(
+      { facingMode: "environment" },
+      config,
+      (decodedText) => {
+        onBarcodeDetected(decodedText);
+      },
+      () => {
+        // ignore per-frame scan failures
+      }
+    );
+  } catch (err) {
+    console.error(err);
+    scanStatus.textContent = "Couldn't access camera. Check permissions.";
+    scanStatus.className = "form-status form-status-error";
+    stopBarcodeScan();
+  }
+}
+
+async function stopBarcodeScan() {
+  const scannerWrap = document.getElementById("scannerWrap");
+  const scanBtn = document.getElementById("scanBarcodeBtn");
+
+  if (html5QrCode) {
+    try {
+      await html5QrCode.stop();
+      html5QrCode.clear();
+    } catch (err) {
+      // ignore stop errors
+    }
+    html5QrCode = null;
+  }
+
+  scannerWrap.hidden = true;
+  scanBtn.hidden = false;
+}
+
+async function onBarcodeDetected(barcode) {
+  const scanStatus = document.getElementById("scanStatus");
+
+  await stopBarcodeScan();
+
+  scanStatus.textContent = `Scanned ${barcode}. Looking up on Discogs...`;
+  scanStatus.className = "form-status";
+
+  try {
+    const response = await fetch(DISCOGS_LOOKUP_FUNCTION_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      },
+      body: JSON.stringify({ barcode }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.error || `Lookup failed (${response.status})`);
+    }
+
+    if (!result.found) {
+      scanStatus.textContent = `Scanned ${barcode}, but no Discogs match was found. You can enter details manually.`;
+      scanStatus.className = "form-status";
+      return;
+    }
+
+    if (result.artist) document.getElementById("fieldArtist").value = result.artist;
+    if (result.album) document.getElementById("fieldAlbum").value = result.album;
+    if (result.year) document.getElementById("fieldYear").value = result.year;
+    if (result.label) document.getElementById("fieldLabel").value = result.label;
+    if (result.genre) document.getElementById("fieldGenre").value = result.genre;
+    if (result.style) document.getElementById("fieldSubgenre").value = result.style;
+
+    if (result.cover_url) {
+      pendingScannedCoverUrl = result.cover_url;
+    }
+
+    scanStatus.textContent = "Found a match on Discogs. Review and adjust details below, then add the record.";
+    scanStatus.className = "form-status form-status-success";
+  } catch (err) {
+    console.error(err);
+    scanStatus.textContent = "Couldn't look up barcode. Check console for details.";
+    scanStatus.className = "form-status form-status-error";
+  }
+}
+
 async function getOrCreateGenreId(genreNameRaw) {
   const name = normalizeGenre(genreNameRaw);
   if (!name) return null;
@@ -375,17 +490,24 @@ async function getOrCreateSubgenreId(subgenreNameRaw, genreId) {
 function openAddRecordModal() {
   document.getElementById("addRecordOverlay").hidden = false;
   document.getElementById("addRecordStatus").textContent = "";
+  document.getElementById("scanStatus").textContent = "";
+  document.getElementById("scanStatus").className = "form-status";
+  pendingScannedCoverUrl = null;
   document.getElementById("fieldArtist").focus();
 }
 
 function closeAddRecordModal() {
   document.getElementById("addRecordOverlay").hidden = true;
+  stopBarcodeScan();
 }
 
 function resetAddRecordForm() {
   document.getElementById("addRecordForm").reset();
   document.getElementById("fieldQuantity").value = 1;
   document.getElementById("addRecordStatus").textContent = "";
+  document.getElementById("scanStatus").textContent = "";
+  document.getElementById("scanStatus").className = "form-status";
+  pendingScannedCoverUrl = null;
 }
 
 async function handleAddRecordSubmit(event) {
@@ -436,6 +558,7 @@ async function handleAddRecordSubmit(event) {
       sleeve_grade: sleeveGrade,
       notes,
       quantity: quantityVal,
+      cover_url: pendingScannedCoverUrl,
     };
 
     const { data, error } = await supabaseClient
@@ -876,6 +999,14 @@ function setupEvents() {
   document
     .getElementById("addRecordForm")
     .addEventListener("submit", handleAddRecordSubmit);
+
+  document
+    .getElementById("scanBarcodeBtn")
+    .addEventListener("click", () => startBarcodeScan());
+
+  document
+    .getElementById("cancelScanBtn")
+    .addEventListener("click", () => stopBarcodeScan());
 
   document
     .getElementById("addRecordOverlay")

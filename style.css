@@ -199,6 +199,29 @@ h1 {
   margin: -0.25rem 0 0.75rem;
 }
 
+.scan-section {
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+#scannerWrap {
+  margin-top: 0.5rem;
+}
+
+#scannerVideo {
+  width: 100%;
+  max-width: 320px;
+  margin: 0 auto 0.5rem;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #000;
+}
+
+#scannerVideo video {
+  width: 100%;
+  display: block;
+}
+
 .form-status {
   min-height: 1.2rem;
   font-size: 0.85rem;
