@@ -158,6 +158,96 @@
     </div>
   </div>
 
+  <!-- Record Detail / Edit modal -->
+  <div id="recordDetailOverlay" class="modal-overlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="recordDetailTitle">
+      <div class="modal-header">
+        <h2 id="recordDetailTitle">Edit record</h2>
+        <button type="button" id="closeRecordDetailBtn" class="modal-close" aria-label="Close">&times;</button>
+      </div>
+
+      <div class="detail-cover-wrap">
+        <img id="detailCoverImg" class="detail-cover-img" alt="" hidden />
+        <div id="detailCoverPlaceholder" class="cover-placeholder detail-cover-placeholder">No cover</div>
+      </div>
+
+      <div id="detailRatingControls" class="detail-rating-controls"></div>
+
+      <form id="recordDetailForm">
+        <div class="form-row">
+          <label for="detailArtist">Artist *</label>
+          <input type="text" id="detailArtist" required />
+        </div>
+
+        <div class="form-row">
+          <label for="detailAlbum">Album *</label>
+          <input type="text" id="detailAlbum" required />
+        </div>
+
+        <div class="form-row form-row-split">
+          <div>
+            <label for="detailYear">Year</label>
+            <input type="number" id="detailYear" min="1900" max="2100" />
+          </div>
+          <div>
+            <label for="detailQuantity">Quantity</label>
+            <input type="number" id="detailQuantity" min="1" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label for="detailLabel">Label</label>
+          <input type="text" id="detailLabel" />
+        </div>
+
+        <div class="form-row form-row-split">
+          <div>
+            <label for="detailGenre">Genre</label>
+            <input type="text" id="detailGenre" list="genreOptions" placeholder="e.g. Jazz" />
+          </div>
+          <div>
+            <label for="detailSubgenre">Subgenre</label>
+            <input type="text" id="detailSubgenre" list="subgenreOptions" placeholder="e.g. Modal Jazz" />
+          </div>
+        </div>
+        <p class="field-hint">
+          Pick from the list or type a new one — new genres/subgenres will be created automatically.
+        </p>
+
+        <div class="form-row form-row-split">
+          <div>
+            <label for="detailVinylGrade">Vinyl grade</label>
+            <input type="text" id="detailVinylGrade" list="gradeOptions" placeholder="e.g. VG+" />
+          </div>
+          <div>
+            <label for="detailSleeveGrade">Sleeve grade</label>
+            <input type="text" id="detailSleeveGrade" list="gradeOptions" placeholder="e.g. VG+" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label for="detailDescription">Description</label>
+          <textarea id="detailDescription" rows="2"></textarea>
+        </div>
+
+        <div class="form-row">
+          <label for="detailNotes">Notes</label>
+          <textarea id="detailNotes" rows="2"></textarea>
+        </div>
+
+        <div id="recordDetailStatus" class="form-status"></div>
+
+        <div class="form-actions form-actions-split">
+          <button type="button" id="deleteRecordBtn" class="btn-danger">Delete record</button>
+          <div class="form-actions">
+            <button type="button" id="cancelRecordDetailBtn" class="btn-secondary">Cancel</button>
+            <button type="submit" id="saveRecordDetailBtn" class="btn-primary">Save changes</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Supabase JS (client-side) -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <script src="app.js"></script>
