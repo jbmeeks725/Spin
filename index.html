@@ -171,6 +171,13 @@
         <div id="detailCoverPlaceholder" class="cover-placeholder detail-cover-placeholder">No cover</div>
       </div>
 
+      <div class="cover-upload-controls">
+        <label for="detailCoverFile" class="btn-secondary cover-upload-label">Change cover</label>
+        <input type="file" id="detailCoverFile" accept="image/*" hidden />
+        <button type="button" id="removeCoverBtn" class="btn-secondary">Remove cover</button>
+      </div>
+      <div id="coverUploadStatus" class="form-status"></div>
+
       <div id="detailRatingControls" class="detail-rating-controls"></div>
 
       <form id="recordDetailForm">

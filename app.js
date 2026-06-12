@@ -496,12 +496,112 @@ async function handleAddRecordSubmit(event) {
 // ------------ Record Detail / Edit ------------
 
 let activeDetailRecordId = null;
+let pendingCoverUrl; // undefined = no change, null = remove, string = new URL
+
+function resizeImageFile(file, maxDim = 800, quality = 0.85) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > height) {
+          if (width > maxDim) {
+            height = Math.round(height * (maxDim / width));
+            width = maxDim;
+          }
+        } else {
+          if (height > maxDim) {
+            width = Math.round(width * (maxDim / height));
+            height = maxDim;
+          }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) => {
+            if (blob) resolve(blob);
+            else reject(new Error("Failed to create image blob"));
+          },
+          "image/jpeg",
+          quality
+        );
+      };
+      img.onerror = () => reject(new Error("Failed to load image"));
+      img.src = e.target.result;
+    };
+    reader.onerror = () => reject(new Error("Failed to read file"));
+    reader.readAsDataURL(file);
+  });
+}
+
+function setCoverPreview(url) {
+  const coverImg = document.getElementById("detailCoverImg");
+  const coverPlaceholder = document.getElementById("detailCoverPlaceholder");
+  if (url) {
+    coverImg.src = url;
+    coverImg.hidden = false;
+    coverPlaceholder.hidden = true;
+  } else {
+    coverImg.hidden = true;
+    coverPlaceholder.hidden = false;
+  }
+}
+
+async function handleCoverFileChange(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file || activeDetailRecordId === null) return;
+
+  const statusEl = document.getElementById("coverUploadStatus");
+  statusEl.textContent = "Uploading cover...";
+  statusEl.className = "form-status";
+
+  try {
+    const blob = await resizeImageFile(file);
+    const path = `record-${activeDetailRecordId}-${Date.now()}.jpg`;
+
+    const { error: uploadError } = await supabaseClient.storage
+      .from("covers")
+      .upload(path, blob, { contentType: "image/jpeg", upsert: true });
+
+    if (uploadError) throw uploadError;
+
+    const { data: urlData } = supabaseClient.storage
+      .from("covers")
+      .getPublicUrl(path);
+
+    pendingCoverUrl = urlData.publicUrl;
+    setCoverPreview(pendingCoverUrl);
+
+    statusEl.textContent = "Cover uploaded. Click Save changes to apply.";
+    statusEl.className = "form-status form-status-success";
+  } catch (err) {
+    console.error(err);
+    statusEl.textContent = "Couldn't upload cover. Check console for details.";
+    statusEl.className = "form-status form-status-error";
+  } finally {
+    event.target.value = "";
+  }
+}
+
+function handleRemoveCover() {
+  pendingCoverUrl = null;
+  setCoverPreview(null);
+  const statusEl = document.getElementById("coverUploadStatus");
+  statusEl.textContent = "Cover will be removed. Click Save changes to apply.";
+  statusEl.className = "form-status";
+}
+
 
 function openRecordDetailModal(recordId) {
   const record = allRecords.find((r) => r.id === recordId);
   if (!record) return;
 
   activeDetailRecordId = recordId;
+  pendingCoverUrl = undefined;
 
   document.getElementById("detailArtist").value = record.artist || "";
   document.getElementById("detailAlbum").value = record.album || "";
@@ -515,17 +615,7 @@ function openRecordDetailModal(recordId) {
   document.getElementById("detailDescription").value = record.description || "";
   document.getElementById("detailNotes").value = record.notes || "";
 
-  const coverImg = document.getElementById("detailCoverImg");
-  const coverPlaceholder = document.getElementById("detailCoverPlaceholder");
-  if (record.cover_url) {
-    coverImg.src = record.cover_url;
-    coverImg.alt = `${record.album} cover`;
-    coverImg.hidden = false;
-    coverPlaceholder.hidden = true;
-  } else {
-    coverImg.hidden = true;
-    coverPlaceholder.hidden = false;
-  }
+  setCoverPreview(record.cover_url || null);
 
   const ratingWrap = document.getElementById("detailRatingControls");
   ratingWrap.innerHTML = "";
@@ -533,6 +623,8 @@ function openRecordDetailModal(recordId) {
 
   document.getElementById("recordDetailStatus").textContent = "";
   document.getElementById("recordDetailStatus").className = "form-status";
+  document.getElementById("coverUploadStatus").textContent = "";
+  document.getElementById("coverUploadStatus").className = "form-status";
 
   document.getElementById("recordDetailOverlay").hidden = false;
 }
@@ -592,6 +684,10 @@ async function handleRecordDetailSubmit(event) {
       notes,
       quantity: quantityVal,
     };
+
+    if (pendingCoverUrl !== undefined) {
+      updates.cover_url = pendingCoverUrl;
+    }
 
     const { error } = await supabaseClient
       .from("records")
@@ -796,6 +892,14 @@ function setupEvents() {
   document
     .getElementById("deleteRecordBtn")
     .addEventListener("click", () => handleDeleteRecord());
+
+  document
+    .getElementById("detailCoverFile")
+    .addEventListener("change", handleCoverFileChange);
+
+  document
+    .getElementById("removeCoverBtn")
+    .addEventListener("click", () => handleRemoveCover());
 
   document
     .getElementById("recordDetailOverlay")
