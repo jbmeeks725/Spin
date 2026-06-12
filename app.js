@@ -5,6 +5,7 @@ const SUPABASE_URL = "https://wdgiskawukblqgapkmig.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_KkcpYXwoOXi2XVv-UqIoiw_5G8q21CT";
 const UPLOAD_COVER_FUNCTION_URL = "https://wdgiskawukblqgapkmig.supabase.co/functions/v1/upload-cover";
 const DISCOGS_LOOKUP_FUNCTION_URL = "https://wdgiskawukblqgapkmig.supabase.co/functions/v1/discogs-lookup";
+const RECOMMENDATIONS_FUNCTION_URL = "https://wdgiskawukblqgapkmig.supabase.co/functions/v1/get-recommendations";
 
 // 2. Create Supabase client
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -14,7 +15,7 @@ let allRecords = [];
 let wishlist = [];
 let genres = [];
 let subgenres = [];
-let currentPage = "collection"; // "collection" | "wishlist"
+let currentPage = "home"; // "home" | "collection" | "wishlist"
 let pendingWishlistCoverUrl = null;
 let pendingWishlistDiscogsId = null;
 let artistFilter = null;
@@ -303,7 +304,360 @@ function renderCards(filtered) {
   });
 }
 
-// ------------ At a Glance charts ------------
+// ------------ Home ------------
+
+let spotlightRecordId = null;
+
+function buildCoverFigure(coverUrl, alt, wrapClassName) {
+  const wrap = document.createElement("div");
+  wrap.className = wrapClassName;
+
+  if (coverUrl) {
+    const img = document.createElement("img");
+    img.src = coverUrl;
+    img.alt = alt;
+    img.loading = "lazy";
+    img.style.width = "100%";
+    img.style.height = "100%";
+    img.style.objectFit = "cover";
+    wrap.appendChild(img);
+  } else {
+    const placeholder = document.createElement("div");
+    placeholder.className = "cover-placeholder";
+    placeholder.style.width = "100%";
+    placeholder.style.height = "100%";
+    const placeholderImg = document.createElement("img");
+    placeholderImg.src = "icon-512.png";
+    placeholderImg.alt = "";
+    placeholder.appendChild(placeholderImg);
+    wrap.appendChild(placeholder);
+  }
+
+  return wrap;
+}
+
+function buildMiniCover(coverUrl, alt) {
+  return buildCoverFigure(coverUrl, alt, "mini-cover-wrap");
+}
+
+function renderStats() {
+  document.getElementById("statTotalRecords").textContent = allRecords.length;
+
+  const genreNames = new Set(allRecords.map((r) => r.genre_name).filter(Boolean));
+  document.getElementById("statTotalGenres").textContent = genreNames.size;
+
+  const years = allRecords.map((r) => r.year).filter((y) => !!y);
+  if (years.length > 0) {
+    const minDecade = Math.floor(Math.min(...years) / 10) * 10;
+    const maxDecade = Math.floor(Math.max(...years) / 10) * 10;
+    const decadeCount = Math.round((maxDecade - minDecade) / 10) + 1;
+    document.getElementById("statDecadeSpan").textContent = decadeCount;
+  } else {
+    document.getElementById("statDecadeSpan").textContent = "0";
+  }
+
+  document.getElementById("statWishlistCount").textContent = wishlist.length;
+}
+
+function renderSpotlight() {
+  const content = document.getElementById("spotlightContent");
+  content.innerHTML = "";
+
+  if (allRecords.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "empty-hint";
+    empty.textContent = "Add some records to see a spotlight here.";
+    content.appendChild(empty);
+    return;
+  }
+
+  if (spotlightRecordId === null || !allRecords.some((r) => r.id === spotlightRecordId)) {
+    spotlightRecordId = allRecords[Math.floor(Math.random() * allRecords.length)].id;
+  }
+
+  const record = allRecords.find((r) => r.id === spotlightRecordId);
+
+  const coverWrap = buildCoverFigure(record.cover_url, `${record.album} cover`, "spotlight-cover-wrap");
+
+  const info = document.createElement("div");
+  info.className = "spotlight-info";
+
+  const artistEl = document.createElement("div");
+  artistEl.className = "spotlight-artist";
+  artistEl.textContent = record.artist;
+
+  const albumEl = document.createElement("div");
+  albumEl.className = "spotlight-album";
+  albumEl.textContent = record.album;
+
+  const metaEl = document.createElement("div");
+  metaEl.className = "spotlight-meta";
+  const metaParts = [];
+  if (record.year) metaParts.push(record.year);
+  if (record.genre_name) metaParts.push(record.genre_name);
+  if (record.subgenre_name) metaParts.push(record.subgenre_name);
+  metaEl.textContent = metaParts.join(" · ");
+
+  info.appendChild(artistEl);
+  info.appendChild(albumEl);
+  if (metaParts.length) info.appendChild(metaEl);
+
+  content.appendChild(coverWrap);
+  content.appendChild(info);
+  content.style.cursor = "pointer";
+  content.onclick = () => openRecordDetailModal(record.id);
+}
+
+function renderRecentlyAdded() {
+  const list = document.getElementById("recentList");
+  list.innerHTML = "";
+
+  if (allRecords.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "empty-hint";
+    empty.textContent = "Nothing added yet.";
+    list.appendChild(empty);
+    return;
+  }
+
+  const recent = [...allRecords].sort((a, b) => b.id - a.id).slice(0, 5);
+
+  recent.forEach((r) => {
+    const item = document.createElement("div");
+    item.className = "mini-list-item";
+    item.appendChild(buildMiniCover(r.cover_url, `${r.album} cover`));
+
+    const info = document.createElement("div");
+    info.className = "mini-info";
+
+    const artistEl = document.createElement("div");
+    artistEl.className = "mini-artist";
+    artistEl.textContent = r.artist;
+
+    const albumEl = document.createElement("div");
+    albumEl.className = "mini-album";
+    albumEl.textContent = r.album;
+
+    info.appendChild(artistEl);
+    info.appendChild(albumEl);
+    item.appendChild(info);
+
+    item.addEventListener("click", () => openRecordDetailModal(r.id));
+    list.appendChild(item);
+  });
+}
+
+function renderWishlistHighlights() {
+  const list = document.getElementById("wishlistHighlightList");
+  list.innerHTML = "";
+
+  if (wishlist.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "empty-hint";
+    empty.textContent = "Your wishlist is empty.";
+    list.appendChild(empty);
+    return;
+  }
+
+  wishlist.slice(0, 5).forEach((w) => {
+    const item = document.createElement("div");
+    item.className = "mini-list-item";
+    item.appendChild(buildMiniCover(w.cover_url, `${w.album} cover`));
+
+    const info = document.createElement("div");
+    info.className = "mini-info";
+
+    const artistEl = document.createElement("div");
+    artistEl.className = "mini-artist";
+    artistEl.textContent = w.artist;
+
+    const albumEl = document.createElement("div");
+    albumEl.className = "mini-album";
+    albumEl.textContent = w.album;
+
+    info.appendChild(artistEl);
+    info.appendChild(albumEl);
+    item.appendChild(info);
+
+    item.addEventListener("click", () => setPage("wishlist"));
+    list.appendChild(item);
+  });
+}
+
+function renderHome() {
+  renderStats();
+  renderSpotlight();
+  renderRecentlyAdded();
+  renderWishlistHighlights();
+}
+
+// ------------ AI Recommendations ------------
+
+function buildTasteProfile() {
+  const loved = allRecords
+    .filter((r) => r.rating === "love")
+    .map((r) => ({ artist: r.artist, album: r.album, genre: r.genre_name, subgenre: r.subgenre_name }));
+
+  const liked = allRecords
+    .filter((r) => r.rating === "like")
+    .map((r) => ({ artist: r.artist, album: r.album, genre: r.genre_name, subgenre: r.subgenre_name }));
+
+  const ownedArtists = Array.from(new Set(allRecords.map((r) => r.artist)));
+
+  const genreCounts = {};
+  allRecords.forEach((r) => {
+    if (r.genre_name) genreCounts[r.genre_name] = (genreCounts[r.genre_name] || 0) + 1;
+  });
+  const topGenres = Object.entries(genreCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([name]) => name);
+
+  return { loved, liked, ownedArtists, topGenres };
+}
+
+async function handleGetRecommendations() {
+  const btn = document.getElementById("getRecommendationsBtn");
+  const statusEl = document.getElementById("recommendationsStatus");
+  const list = document.getElementById("recommendationsList");
+
+  const profile = buildTasteProfile();
+
+  if (profile.loved.length === 0 && profile.liked.length === 0) {
+    statusEl.textContent = 'Rate some albums "Love" or "Like" first so we have something to base suggestions on.';
+    statusEl.className = "form-status form-status-error";
+    return;
+  }
+
+  btn.disabled = true;
+  statusEl.textContent = "Thinking about what you might enjoy...";
+  statusEl.className = "form-status";
+  list.innerHTML = "";
+
+  try {
+    const response = await fetch(RECOMMENDATIONS_FUNCTION_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      },
+      body: JSON.stringify(profile),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.error || `Request failed (${response.status})`);
+    }
+
+    const suggestions = result.suggestions || [];
+
+    if (suggestions.length === 0) {
+      statusEl.textContent = "No suggestions came back. Try again in a moment.";
+      statusEl.className = "form-status";
+      return;
+    }
+
+    statusEl.textContent = "";
+
+    suggestions.forEach((s) => {
+      const card = document.createElement("div");
+      card.className = "recommendation-card";
+
+      const artistEl = document.createElement("div");
+      artistEl.className = "recommendation-artist";
+      artistEl.textContent = s.artist;
+
+      const albumEl = document.createElement("div");
+      albumEl.className = "recommendation-album";
+      albumEl.textContent = s.album;
+
+      const reasonEl = document.createElement("div");
+      reasonEl.className = "recommendation-reason";
+      reasonEl.textContent = s.reason || "";
+
+      const addBtn = document.createElement("button");
+      addBtn.type = "button";
+      addBtn.className = "btn-secondary";
+      addBtn.textContent = "Add to Wishlist";
+      addBtn.addEventListener("click", () => addRecommendationToWishlist(s.artist, s.album, addBtn));
+
+      card.appendChild(artistEl);
+      card.appendChild(albumEl);
+      card.appendChild(reasonEl);
+      card.appendChild(addBtn);
+      list.appendChild(card);
+    });
+  } catch (err) {
+    console.error(err);
+    statusEl.textContent = "Couldn't get recommendations. Check console for details.";
+    statusEl.className = "form-status form-status-error";
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function addRecommendationToWishlist(artist, album, btn) {
+  btn.disabled = true;
+  btn.textContent = "Adding...";
+
+  try {
+    const { data, error } = await supabaseClient
+      .from("wishlist")
+      .insert({
+        artist,
+        album,
+        year: null,
+        label: null,
+        genre_id: null,
+        subgenre_id: null,
+        notes: "Suggested by Spin",
+        cover_url: null,
+        discogs_release_id: null,
+      })
+      .select(
+        `
+        id,
+        artist,
+        album,
+        year,
+        label,
+        genre_id,
+        subgenre_id,
+        discogs_release_id,
+        cover_url,
+        notes,
+        added_at,
+        price_data,
+        price_currency,
+        price_checked_at
+      `
+      )
+      .single();
+
+    if (error) throw error;
+
+    const enriched = { ...data, genre_name: "", subgenre_name: "" };
+    wishlist.unshift(enriched);
+
+    btn.textContent = "Added \u2713";
+
+    // Try to find a Discogs match/cover in the background
+    findWishlistDiscogsMatch(data.id).then(() => {
+      if (currentPage === "wishlist") render();
+      if (currentPage === "home") renderWishlistHighlights();
+    });
+
+    if (currentPage === "home") renderWishlistHighlights();
+  } catch (err) {
+    console.error(err);
+    btn.textContent = "Error";
+    btn.disabled = false;
+  }
+}
+
+
 
 function computeGenreCounts() {
   const counts = {};
@@ -562,6 +916,11 @@ function renderCharts() {
 // ------------ Render / page switching ------------
 
 function render() {
+  if (currentPage === "home") {
+    renderHome();
+    return;
+  }
+
   if (currentPage === "wishlist") {
     renderWishlist();
     document.getElementById("activeFiltersBar").hidden = true;
@@ -580,28 +939,43 @@ function render() {
 function setPage(page) {
   currentPage = page;
 
+  const homeBtn = document.getElementById("homePageBtn");
   const collectionBtn = document.getElementById("collectionPageBtn");
   const wishlistBtn = document.getElementById("wishlistPageBtn");
+
+  const homeSection = document.getElementById("homeSection");
   const atAGlanceSection = document.getElementById("atAGlanceSection");
   const cardSection = document.getElementById("cardSection");
   const wishlistSection = document.getElementById("wishlistSection");
   const filterControls = document.getElementById("collectionFilters");
+  const statusSection = document.getElementById("status");
+  const gridDensity = document.getElementById("gridDensityControl");
 
+  const isHome = page === "home";
   const isCollection = page === "collection";
+  const isWishlist = page === "wishlist";
 
-  collectionBtn.classList.toggle("active", isCollection);
-  collectionBtn.setAttribute("aria-pressed", String(isCollection));
-  wishlistBtn.classList.toggle("active", !isCollection);
-  wishlistBtn.setAttribute("aria-pressed", String(!isCollection));
+  [
+    [homeBtn, isHome],
+    [collectionBtn, isCollection],
+    [wishlistBtn, isWishlist],
+  ].forEach(([btn, active]) => {
+    btn.classList.toggle("active", active);
+    btn.setAttribute("aria-pressed", String(active));
+  });
 
+  homeSection.hidden = !isHome;
   atAGlanceSection.hidden = !isCollection;
   cardSection.hidden = !isCollection;
-  wishlistSection.hidden = isCollection;
+  wishlistSection.hidden = !isWishlist;
   filterControls.hidden = !isCollection;
+  statusSection.hidden = isHome;
+  gridDensity.hidden = isHome;
 
   document.getElementById("addRecordBtn").hidden = !isCollection;
-  document.getElementById("addWishlistBtn").hidden = isCollection;
-  document.getElementById("findAllDiscogsBtn").hidden = isCollection;
+  document.getElementById("addWishlistBtn").hidden = !isWishlist;
+  document.getElementById("findAllDiscogsBtn").hidden = !isWishlist;
+  document.getElementById("importBtn").hidden = isHome;
 
   render();
 }
@@ -2218,12 +2592,27 @@ function setupEvents() {
     .addEventListener("change", () => render());
 
   document
+    .getElementById("homePageBtn")
+    .addEventListener("click", () => setPage("home"));
+
+  document
     .getElementById("collectionPageBtn")
     .addEventListener("click", () => setPage("collection"));
 
   document
     .getElementById("wishlistPageBtn")
     .addEventListener("click", () => setPage("wishlist"));
+
+  document
+    .getElementById("spotlightShuffleBtn")
+    .addEventListener("click", () => {
+      spotlightRecordId = null;
+      renderSpotlight();
+    });
+
+  document
+    .getElementById("getRecommendationsBtn")
+    .addEventListener("click", () => handleGetRecommendations());
 
   const gridColsSelect = document.getElementById("gridColsSelect");
   let savedCols = "auto";

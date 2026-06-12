@@ -25,10 +25,11 @@
   </header>
   <section id="controls">
     <nav id="pageNav" role="group" aria-label="Page">
-      <button type="button" id="collectionPageBtn" class="view-btn active" aria-pressed="true">My Collection</button>
+      <button type="button" id="homePageBtn" class="view-btn active" aria-pressed="true">Home</button>
+      <button type="button" id="collectionPageBtn" class="view-btn" aria-pressed="false">My Collection</button>
       <button type="button" id="wishlistPageBtn" class="view-btn" aria-pressed="false">My Wishlist</button>
     </nav>
-    <div id="collectionFilters">
+    <div id="collectionFilters" hidden>
       <input
         type="text"
         id="searchInput"
@@ -49,7 +50,7 @@
         <option value="unrated">Unrated</option>
       </select>
     </div>
-    <div id="gridDensityControl">
+    <div id="gridDensityControl" hidden>
       <label for="gridColsSelect">Per row</label>
       <select id="gridColsSelect">
         <option value="auto">Auto</option>
@@ -61,18 +62,68 @@
         <option value="10">10</option>
       </select>
     </div>
-    <button type="button" id="addRecordBtn" class="add-record-btn">+ Add Record</button>
+    <button type="button" id="addRecordBtn" class="add-record-btn" hidden>+ Add Record</button>
     <button type="button" id="addWishlistBtn" class="add-record-btn" hidden>+ Add to Wishlist</button>
     <button type="button" id="findAllDiscogsBtn" class="btn-secondary" hidden>Find Discogs matches for all</button>
-    <button type="button" id="importBtn" class="btn-secondary">Import from spreadsheet</button>
+    <button type="button" id="importBtn" class="btn-secondary" hidden>Import from spreadsheet</button>
   </section>
-  <section id="status">
+  <section id="status" hidden>
     <span id="statusMessage">Loading records…</span>
   </section>
 
   <div id="activeFiltersBar" class="active-filters-bar" hidden></div>
 
-  <section id="atAGlanceSection">
+  <section id="homeSection">
+    <div class="home-grid">
+      <div class="home-card home-stats">
+        <h2>Your Collection at a Glance</h2>
+        <div class="stat-row">
+          <div class="stat">
+            <span class="stat-value" id="statTotalRecords">—</span>
+            <span class="stat-label">Records</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value" id="statTotalGenres">—</span>
+            <span class="stat-label">Genres</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value" id="statDecadeSpan">—</span>
+            <span class="stat-label">Decades</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value" id="statWishlistCount">—</span>
+            <span class="stat-label">Wishlist</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="home-card home-spotlight">
+        <h2>Spotlight</h2>
+        <div id="spotlightContent" class="spotlight-content"></div>
+        <button type="button" id="spotlightShuffleBtn" class="btn-secondary">Shuffle</button>
+      </div>
+
+      <div class="home-card home-recent">
+        <h2>Recently Added</h2>
+        <div id="recentList" class="mini-list"></div>
+      </div>
+
+      <div class="home-card home-wishlist-highlight">
+        <h2>From Your Wishlist</h2>
+        <div id="wishlistHighlightList" class="mini-list"></div>
+      </div>
+
+      <div class="home-card home-recommendations">
+        <h2>Suggested For You</h2>
+        <p class="field-hint">Based on the albums you've rated "Love" and "Like."</p>
+        <button type="button" id="getRecommendationsBtn" class="btn-secondary">Get recommendations</button>
+        <div id="recommendationsStatus" class="form-status"></div>
+        <div id="recommendationsList" class="recommendations-list"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="atAGlanceSection" hidden>
     <h2>My Collection — At a Glance</h2>
     <div class="charts-grid">
       <div class="chart-card">
