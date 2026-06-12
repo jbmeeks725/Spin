@@ -564,13 +564,13 @@ async function handleCoverFileChange(event) {
     const path = `record-${activeDetailRecordId}-${Date.now()}.jpg`;
 
     const { error: uploadError } = await supabaseClient.storage
-      .from("covers")
+      .from("Album covers")
       .upload(path, blob, { contentType: "image/jpeg", upsert: true });
 
     if (uploadError) throw uploadError;
 
     const { data: urlData } = supabaseClient.storage
-      .from("covers")
+      .from("Album covers")
       .getPublicUrl(path);
 
     pendingCoverUrl = urlData.publicUrl;
