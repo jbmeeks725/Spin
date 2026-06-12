@@ -2,7 +2,7 @@
 
 // 1. CONFIG: fill these with your project values
 const SUPABASE_URL = "https://wdgiskawukblqgapkmig.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_KkcpYXwoOXi2XVv-UqIoiw_5G8q21CT";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndkZ2lza2F3dWtibHFnYXBrbWlnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMTIyODIsImV4cCI6MjA5Njc4ODI4Mn0.wt93Mf8TuzjFppmxNjrlPNoj4vnBplTafqBQcN1MoEo";
 const UPLOAD_COVER_FUNCTION_URL = "https://wdgiskawukblqgapkmig.supabase.co/functions/v1/upload-cover";
 
 // 2. Create Supabase client
