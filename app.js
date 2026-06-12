@@ -362,9 +362,16 @@ function renderStats() {
   document.getElementById("statWishlistCount").textContent = wishlist.length;
 }
 
+function getSpotlightPool() {
+  const favorites = allRecords.filter((r) => r.rating === "love" || r.rating === "like");
+  return favorites.length > 0 ? favorites : allRecords;
+}
+
 function renderSpotlight() {
   const content = document.getElementById("spotlightContent");
+  const songWrap = document.getElementById("spotlightSongWrap");
   content.innerHTML = "";
+  songWrap.innerHTML = "";
 
   if (allRecords.length === 0) {
     const empty = document.createElement("p");
@@ -374,11 +381,13 @@ function renderSpotlight() {
     return;
   }
 
-  if (spotlightRecordId === null || !allRecords.some((r) => r.id === spotlightRecordId)) {
-    spotlightRecordId = allRecords[Math.floor(Math.random() * allRecords.length)].id;
+  const pool = getSpotlightPool();
+
+  if (spotlightRecordId === null || !pool.some((r) => r.id === spotlightRecordId)) {
+    spotlightRecordId = pool[Math.floor(Math.random() * pool.length)].id;
   }
 
-  const record = allRecords.find((r) => r.id === spotlightRecordId);
+  const record = pool.find((r) => r.id === spotlightRecordId);
 
   const coverWrap = buildCoverFigure(record.cover_url, `${record.album} cover`, "spotlight-cover-wrap");
 
@@ -399,16 +408,80 @@ function renderSpotlight() {
   if (record.year) metaParts.push(record.year);
   if (record.genre_name) metaParts.push(record.genre_name);
   if (record.subgenre_name) metaParts.push(record.subgenre_name);
+  if (record.rating) metaParts.push(RATING_LABELS[record.rating] || record.rating);
   metaEl.textContent = metaParts.join(" · ");
 
   info.appendChild(artistEl);
   info.appendChild(albumEl);
   if (metaParts.length) info.appendChild(metaEl);
 
+  if (record.description) {
+    const descEl = document.createElement("div");
+    descEl.className = "spotlight-description";
+    descEl.textContent = record.description;
+    info.appendChild(descEl);
+  }
+
   content.appendChild(coverWrap);
   content.appendChild(info);
   content.style.cursor = "pointer";
-  content.onclick = () => openRecordDetailModal(record.id);
+  content.onclick = (e) => {
+    if (e.target.closest("a, button")) return;
+    openRecordDetailModal(record.id);
+  };
+
+  const findSongBtn = document.createElement("button");
+  findSongBtn.type = "button";
+  findSongBtn.className = "btn-secondary";
+  findSongBtn.textContent = "Find a notable track";
+  findSongBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    findSpotlightSong(record, songWrap, findSongBtn);
+  });
+  songWrap.appendChild(findSongBtn);
+}
+
+async function findSpotlightSong(record, wrap, btn) {
+  btn.disabled = true;
+  btn.textContent = "Looking up...";
+
+  try {
+    const response = await fetch(RECOMMENDATIONS_FUNCTION_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      },
+      body: JSON.stringify({ mode: "song", artist: record.artist, album: record.album }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.error || `Request failed (${response.status})`);
+    }
+
+    if (!result.song) {
+      throw new Error("No song returned");
+    }
+
+    wrap.innerHTML = "";
+
+    const link = document.createElement("a");
+    link.href = `https://www.youtube.com/results?search_query=${encodeURIComponent(`${record.artist} ${result.song} official`)}`;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.className = "spotlight-song-link";
+    link.textContent = `\u25B6 "${result.song}" on YouTube`;
+    link.addEventListener("click", (e) => e.stopPropagation());
+    wrap.appendChild(link);
+  } catch (err) {
+    console.error(err);
+    btn.disabled = false;
+    btn.textContent = "Find a notable track";
+    setStatus("Couldn't find a track suggestion. See console for details.");
+  }
 }
 
 function renderRecentlyAdded() {
