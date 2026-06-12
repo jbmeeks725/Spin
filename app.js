@@ -481,6 +481,7 @@ async function handleAddRecordSubmit(event) {
 }
 
 
+async function loadData() {
   try {
     setStatus("Loading genres...");
     const { data: genreData, error: genreError } = await supabaseClient
