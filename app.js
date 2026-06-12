@@ -489,6 +489,7 @@ function setPage(page) {
 
   document.getElementById("addRecordBtn").hidden = !isCollection;
   document.getElementById("addWishlistBtn").hidden = isCollection;
+  document.getElementById("findAllDiscogsBtn").hidden = isCollection;
 
   render();
 }
@@ -987,16 +988,27 @@ function renderWishlist() {
       }
     }
 
-    const priceBtn = document.createElement("button");
-    priceBtn.type = "button";
-    priceBtn.className = "btn-secondary price-btn";
-    priceBtn.textContent = w.discogs_release_id ? "Check price" : "No Discogs match";
-    priceBtn.disabled = !w.discogs_release_id;
-    priceBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      checkWishlistPrice(w.id);
-    });
-    priceWrap.appendChild(priceBtn);
+    if (w.discogs_release_id) {
+      const priceBtn = document.createElement("button");
+      priceBtn.type = "button";
+      priceBtn.className = "btn-secondary price-btn";
+      priceBtn.textContent = "Check price";
+      priceBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        checkWishlistPrice(w.id);
+      });
+      priceWrap.appendChild(priceBtn);
+    } else {
+      const findBtn = document.createElement("button");
+      findBtn.type = "button";
+      findBtn.className = "btn-secondary price-btn";
+      findBtn.textContent = "Find on Discogs";
+      findBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        findWishlistDiscogsMatch(w.id);
+      });
+      priceWrap.appendChild(findBtn);
+    }
 
     info.appendChild(priceWrap);
 
@@ -1080,6 +1092,115 @@ async function checkWishlistPrice(wishlistId) {
     console.error(err);
     setStatus("Couldn't check price. See console for details.");
   }
+}
+
+async function lookupDiscogsByArtistAlbum(artist, album) {
+  const response = await fetch(DISCOGS_LOOKUP_FUNCTION_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+    },
+    body: JSON.stringify({ artist, album }),
+  });
+
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result.error || `Lookup failed (${response.status})`);
+  }
+
+  return result;
+}
+
+async function findWishlistDiscogsMatch(wishlistId) {
+  const item = wishlist.find((w) => w.id === wishlistId);
+  if (!item) return;
+
+  setStatus(`Searching Discogs for "${item.album}" by ${item.artist}...`);
+
+  try {
+    const result = await lookupDiscogsByArtistAlbum(item.artist, item.album);
+
+    if (!result.found) {
+      setStatus(`No Discogs match found for "${item.album}" by ${item.artist}.`);
+      return;
+    }
+
+    const updates = {
+      discogs_release_id: result.discogs_release_id || null,
+      cover_url: item.cover_url || result.cover_url || null,
+    };
+
+    const { error } = await supabaseClient
+      .from("wishlist")
+      .update(updates)
+      .eq("id", wishlistId);
+
+    if (error) throw error;
+
+    Object.assign(item, updates);
+    render();
+    setStatus(`Found a Discogs match for "${item.album}" by ${item.artist}.`);
+  } catch (err) {
+    console.error(err);
+    setStatus("Couldn't search Discogs. See console for details.");
+  }
+}
+
+async function findAllWishlistDiscogsMatches() {
+  const targets = wishlist.filter((w) => !w.discogs_release_id);
+
+  if (targets.length === 0) {
+    setStatus("Every wishlist item already has a Discogs match.");
+    return;
+  }
+
+  const btn = document.getElementById("findAllDiscogsBtn");
+  if (btn) btn.disabled = true;
+
+  let found = 0;
+  let notFound = 0;
+
+  for (let i = 0; i < targets.length; i++) {
+    const item = targets[i];
+    setStatus(`Checking Discogs ${i + 1} of ${targets.length}: "${item.album}" by ${item.artist}...`);
+
+    try {
+      const result = await lookupDiscogsByArtistAlbum(item.artist, item.album);
+
+      if (result.found) {
+        const updates = {
+          discogs_release_id: result.discogs_release_id || null,
+          cover_url: item.cover_url || result.cover_url || null,
+        };
+
+        const { error } = await supabaseClient
+          .from("wishlist")
+          .update(updates)
+          .eq("id", item.id);
+
+        if (!error) {
+          Object.assign(item, updates);
+          found++;
+        }
+      } else {
+        notFound++;
+      }
+    } catch (err) {
+      console.error(err);
+      notFound++;
+    }
+
+    render();
+
+    // Discogs allows ~60 authenticated requests/minute
+    await new Promise((resolve) => setTimeout(resolve, 1100));
+  }
+
+  if (btn) btn.disabled = false;
+  setStatus(`Done. Matched ${found}, no match for ${notFound}.`);
 }
 
 function openAddWishlistModal() {
@@ -2043,6 +2164,10 @@ function setupEvents() {
   document
     .getElementById("addWishlistBtn")
     .addEventListener("click", () => openAddWishlistModal());
+
+  document
+    .getElementById("findAllDiscogsBtn")
+    .addEventListener("click", () => findAllWishlistDiscogsMatches());
 
   document
     .getElementById("closeAddWishlistBtn")
