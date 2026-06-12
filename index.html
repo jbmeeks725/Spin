@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>My Vinyl Collection</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>My Vinyl Collection</h1>
+  </header>
+
+  <section id="controls">
+    <input
+      type="text"
+      id="searchInput"
+      placeholder="Search by artist or album..."
+    />
+
+    <select id="genreFilter">
+      <option value="">All genres</option>
+    </select>
+
+    <select id="subgenreFilter">
+      <option value="">All subgenres</option>
+    </select>
+  </section>
+
+  <section id="status">
+    <span id="statusMessage">Loading records…</span>
+  </section>
+
+  <section id="tableSection">
+    <table id="recordsTable">
+      <thead>
+        <tr>
+          <th>Artist</th>
+          <th>Album</th>
+          <th>Year</th>
+          <th>Genre</th>
+          <th>Subgenre</th>
+          <th>Label</th>
+        </tr>
+      </thead>
+      <tbody id="recordsBody">
+        <!-- rows will be injected here -->
+      </tbody>
+    </table>
+  </section>
+
+  <!-- Supabase JS (client-side) -->
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="app.js"></script>
+</body>
+</html>
