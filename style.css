@@ -530,29 +530,43 @@ h1 {
   height: 200px;
 }
 
-.chart-filter-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: #8a6a2f;
-  color: #f9fafb;
-  border-radius: 999px;
-  padding: 0.3rem 0.7rem;
-  font-size: 0.8rem;
-  margin-bottom: 0.75rem;
+.active-filters-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  padding: 0 1.5rem 0.75rem;
 }
 
-.chart-filter-chip[hidden] {
+.active-filters-bar[hidden] {
   display: none;
 }
 
-.chart-filter-chip button {
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: #8a6a2f;
+  color: #f9fafb;
+  border-radius: 999px;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.78rem;
+  border: none;
+}
+
+.filter-chip button {
   background: none;
   border: none;
   color: #f9fafb;
   cursor: pointer;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   padding: 0;
+  line-height: 1;
+}
+
+.filter-chip.clear-all {
+  background: #374151;
+  color: #e5e7eb;
+  cursor: pointer;
 }
 
 /* ------------ Card grid ------------ */
@@ -730,4 +744,99 @@ h1 {
   background: #374151;
   border-color: #4b5563;
   color: #e5e7eb;
+}
+
+/* ------------ Mobile layout ------------ */
+
+@media (max-width: 640px) {
+  header {
+    padding: 0.75rem 1rem;
+  }
+
+  .brand-logo {
+    width: 36px;
+    height: 36px;
+  }
+
+  h1 {
+    font-size: 1.3rem;
+  }
+
+  .tagline {
+    font-size: 0.7rem;
+  }
+
+  #controls {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 0.75rem 1rem;
+    gap: 0.6rem;
+  }
+
+  #pageNav {
+    width: 100%;
+  }
+
+  #pageNav .view-btn {
+    flex: 1;
+    text-align: center;
+  }
+
+  #collectionFilters {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+
+  #collectionFilters input,
+  #collectionFilters select {
+    width: 100%;
+  }
+
+  #gridDensityControl {
+    margin-left: 0;
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  #gridDensityControl select {
+    flex: 1;
+    max-width: 160px;
+  }
+
+  .add-record-btn,
+  #importBtn,
+  #findAllDiscogsBtn {
+    width: 100%;
+    text-align: center;
+  }
+
+  #status {
+    padding: 0.5rem 1rem;
+  }
+
+  .active-filters-bar {
+    padding: 0 1rem 0.6rem;
+  }
+
+  #atAGlanceSection {
+    padding: 0.75rem 1rem 0;
+  }
+
+  #atAGlanceSection h2 {
+    font-size: 1rem;
+  }
+
+  .charts-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .chart-canvas-wrap {
+    height: 170px;
+  }
+
+  #cardSection,
+  #wishlistSection {
+    padding: 0 1rem 1rem;
+  }
 }

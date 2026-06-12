@@ -384,20 +384,128 @@ function upsertBarChart(instance, canvasId, labels, data, onBarClick) {
   });
 }
 
-function updateChartFilterChip() {
-  const chip = document.getElementById("chartFilterChip");
-  const label = document.getElementById("chartFilterLabel");
+const RATING_LABELS = Object.fromEntries(RATING_OPTIONS.map((o) => [o.value, o.label]));
+RATING_LABELS.unrated = "Unrated";
+
+function clearAllFilters() {
+  document.getElementById("searchInput").value = "";
+  document.getElementById("genreFilter").value = "";
+  populateSubgenreFilterOptions();
+  document.getElementById("ratingFilter").value = "";
+  artistFilter = null;
+  yearFilter = null;
+  render();
+}
+
+function renderActiveFilters() {
+  const bar = document.getElementById("activeFiltersBar");
+  bar.innerHTML = "";
+
+  if (currentPage !== "collection") {
+    bar.hidden = true;
+    return;
+  }
+
+  const chips = [];
+
+  const searchVal = document.getElementById("searchInput").value.trim();
+  if (searchVal) {
+    chips.push({
+      label: `Search: "${searchVal}"`,
+      onClear: () => {
+        document.getElementById("searchInput").value = "";
+        render();
+      },
+    });
+  }
+
+  const genreVal = document.getElementById("genreFilter").value;
+  if (genreVal) {
+    chips.push({
+      label: `Genre: ${genreNameById(Number(genreVal))}`,
+      onClear: () => {
+        document.getElementById("genreFilter").value = "";
+        populateSubgenreFilterOptions();
+        render();
+      },
+    });
+  }
+
+  const subgenreVal = document.getElementById("subgenreFilter").value;
+  if (subgenreVal) {
+    chips.push({
+      label: `Subgenre: ${subgenreNameById(Number(subgenreVal))}`,
+      onClear: () => {
+        document.getElementById("subgenreFilter").value = "";
+        render();
+      },
+    });
+  }
+
+  const ratingVal = document.getElementById("ratingFilter").value;
+  if (ratingVal) {
+    chips.push({
+      label: `Rating: ${RATING_LABELS[ratingVal] || ratingVal}`,
+      onClear: () => {
+        document.getElementById("ratingFilter").value = "";
+        render();
+      },
+    });
+  }
 
   if (artistFilter) {
-    label.textContent = `Artist: ${artistFilter}`;
-    chip.hidden = false;
-  } else if (yearFilter) {
-    label.textContent = `Decade: ${yearFilter.start}s`;
-    chip.hidden = false;
-  } else {
-    label.textContent = "";
-    chip.hidden = true;
+    chips.push({
+      label: `Artist: ${artistFilter}`,
+      onClear: () => {
+        artistFilter = null;
+        render();
+      },
+    });
   }
+
+  if (yearFilter) {
+    chips.push({
+      label: `Decade: ${yearFilter.start}s`,
+      onClear: () => {
+        yearFilter = null;
+        render();
+      },
+    });
+  }
+
+  if (chips.length === 0) {
+    bar.hidden = true;
+    return;
+  }
+
+  chips.forEach((chip) => {
+    const el = document.createElement("span");
+    el.className = "filter-chip";
+
+    const text = document.createElement("span");
+    text.textContent = chip.label;
+
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.textContent = "✕";
+    btn.setAttribute("aria-label", `Clear ${chip.label}`);
+    btn.addEventListener("click", chip.onClear);
+
+    el.appendChild(text);
+    el.appendChild(btn);
+    bar.appendChild(el);
+  });
+
+  if (chips.length > 1) {
+    const clearAllBtn = document.createElement("button");
+    clearAllBtn.type = "button";
+    clearAllBtn.className = "filter-chip clear-all";
+    clearAllBtn.textContent = "Clear all";
+    clearAllBtn.addEventListener("click", clearAllFilters);
+    bar.appendChild(clearAllBtn);
+  }
+
+  bar.hidden = false;
 }
 
 function renderCharts() {
@@ -429,7 +537,6 @@ function renderCharts() {
     (label) => {
       artistFilter = artistFilter === label ? null : label;
       yearFilter = null;
-      updateChartFilterChip();
       render();
     }
   );
@@ -447,7 +554,6 @@ function renderCharts() {
         yearFilter = { start, end: start + 9 };
       }
       artistFilter = null;
-      updateChartFilterChip();
       render();
     }
   );
@@ -458,6 +564,7 @@ function renderCharts() {
 function render() {
   if (currentPage === "wishlist") {
     renderWishlist();
+    document.getElementById("activeFiltersBar").hidden = true;
     setStatus(`${wishlist.length} item${wishlist.length === 1 ? "" : "s"} on your wishlist`);
     return;
   }
@@ -465,6 +572,7 @@ function render() {
   const filtered = getFilteredRecords();
   renderCards(filtered);
   renderCharts();
+  renderActiveFilters();
 
   setStatus(`Showing ${filtered.length} of ${allRecords.length} records`);
 }
@@ -2116,15 +2224,6 @@ function setupEvents() {
   document
     .getElementById("wishlistPageBtn")
     .addEventListener("click", () => setPage("wishlist"));
-
-  document
-    .getElementById("clearChartFilterBtn")
-    .addEventListener("click", () => {
-      artistFilter = null;
-      yearFilter = null;
-      updateChartFilterChip();
-      render();
-    });
 
   const gridColsSelect = document.getElementById("gridColsSelect");
   let savedCols = "auto";
