@@ -50,6 +50,16 @@ function parseYearInput(value) {
   return Math.trunc(n);
 }
 
+function genreNameById(id) {
+  if (!id) return "";
+  return genres.find((g) => g.id === id)?.name ?? "";
+}
+
+function subgenreNameById(id) {
+  if (!id) return "";
+  return subgenres.find((sg) => sg.id === id)?.name ?? "";
+}
+
 
 function renderFilters() {
   const genreSelect = document.getElementById("genreFilter");
@@ -952,9 +962,7 @@ async function handleAddWishlistSubmit(event) {
         added_at,
         price_data,
         price_currency,
-        price_checked_at,
-        genres ( name ),
-        subgenres ( name )
+        price_checked_at
       `
       )
       .single();
@@ -963,8 +971,8 @@ async function handleAddWishlistSubmit(event) {
 
     const enriched = {
       ...data,
-      genre_name: data.genres?.name ?? "",
-      subgenre_name: data.subgenres?.name ?? "",
+      genre_name: genreNameById(data.genre_id),
+      subgenre_name: subgenreNameById(data.subgenre_id),
     };
 
     wishlist.unshift(enriched);
@@ -1434,9 +1442,7 @@ async function loadData() {
         added_at,
         price_data,
         price_currency,
-        price_checked_at,
-        genres ( name ),
-        subgenres ( name )
+        price_checked_at
       `
       )
       .order("added_at", { ascending: false });
@@ -1445,8 +1451,8 @@ async function loadData() {
     wishlist =
       wishlistData?.map((w) => ({
         ...w,
-        genre_name: w.genres?.name ?? "",
-        subgenre_name: w.subgenres?.name ?? "",
+        genre_name: genreNameById(w.genre_id),
+        subgenre_name: subgenreNameById(w.subgenre_id),
       })) || [];
 
     renderFilters();
