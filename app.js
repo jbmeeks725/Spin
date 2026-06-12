@@ -370,8 +370,10 @@ function getSpotlightPool() {
 function renderSpotlight() {
   const content = document.getElementById("spotlightContent");
   const songWrap = document.getElementById("spotlightSongWrap");
+  const wikiWrap = document.getElementById("spotlightWikiWrap");
   content.innerHTML = "";
   songWrap.innerHTML = "";
+  wikiWrap.innerHTML = "";
 
   if (allRecords.length === 0) {
     const empty = document.createElement("p");
@@ -439,6 +441,16 @@ function renderSpotlight() {
     findSpotlightSong(record, songWrap, findSongBtn);
   });
   songWrap.appendChild(findSongBtn);
+
+  const wikiBtn = document.createElement("button");
+  wikiBtn.type = "button";
+  wikiBtn.className = "btn-secondary";
+  wikiBtn.textContent = "Look up on Wikipedia";
+  wikiBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    findSpotlightWiki(record, wikiWrap, wikiBtn);
+  });
+  wikiWrap.appendChild(wikiBtn);
 }
 
 async function findSpotlightSong(record, wrap, btn) {
@@ -480,7 +492,99 @@ async function findSpotlightSong(record, wrap, btn) {
     console.error(err);
     btn.disabled = false;
     btn.textContent = "Find a notable track";
-    setStatus("Couldn't find a track suggestion. See console for details.");
+    const errEl = document.createElement("p");
+    errEl.className = "spotlight-error";
+    errEl.textContent = `Couldn't find a track suggestion (${err.message || err}).`;
+    wrap.appendChild(errEl);
+  }
+}
+
+async function findSpotlightWiki(record, wrap, btn) {
+  btn.disabled = true;
+  btn.textContent = "Looking up...";
+
+  try {
+    const query = `${record.album} ${record.artist} album`;
+    const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&origin=*&srlimit=1`;
+
+    const searchResp = await fetch(searchUrl);
+    if (!searchResp.ok) throw new Error(`Wikipedia search failed (${searchResp.status})`);
+    const searchData = await searchResp.json();
+    const results = searchData?.query?.search || [];
+
+    if (results.length === 0) {
+      throw new Error("No Wikipedia article found");
+    }
+
+    const title = results[0].title;
+    const summaryUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`;
+    const summaryResp = await fetch(summaryUrl);
+    if (!summaryResp.ok) throw new Error(`Wikipedia summary failed (${summaryResp.status})`);
+    const summaryData = await summaryResp.json();
+
+    if (!summaryData.extract) {
+      throw new Error("No summary available");
+    }
+
+    wrap.innerHTML = "";
+
+    const resultBox = document.createElement("div");
+    resultBox.className = "spotlight-wiki-result";
+
+    const extractEl = document.createElement("p");
+    extractEl.textContent = summaryData.extract;
+    resultBox.appendChild(extractEl);
+
+    const pageUrl = summaryData.content_urls?.desktop?.page;
+
+    const actions = document.createElement("div");
+    actions.className = "spotlight-wiki-actions";
+
+    if (pageUrl) {
+      const link = document.createElement("a");
+      link.href = pageUrl;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.textContent = `Read more: ${summaryData.title} ↗`;
+      link.addEventListener("click", (e) => e.stopPropagation());
+      actions.appendChild(link);
+    }
+
+    const saveBtn = document.createElement("button");
+    saveBtn.type = "button";
+    saveBtn.className = "btn-secondary";
+    saveBtn.textContent = "Save as description";
+    saveBtn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      saveBtn.disabled = true;
+      saveBtn.textContent = "Saving...";
+      try {
+        const { error } = await supabaseClient
+          .from("records")
+          .update({ description: summaryData.extract })
+          .eq("id", record.id);
+        if (error) throw error;
+        record.description = summaryData.extract;
+        saveBtn.textContent = "Saved \u2713";
+        renderSpotlight();
+      } catch (err) {
+        console.error(err);
+        saveBtn.disabled = false;
+        saveBtn.textContent = "Save as description";
+      }
+    });
+    actions.appendChild(saveBtn);
+
+    resultBox.appendChild(actions);
+    wrap.appendChild(resultBox);
+  } catch (err) {
+    console.error(err);
+    btn.disabled = false;
+    btn.textContent = "Look up on Wikipedia";
+    const errEl = document.createElement("p");
+    errEl.className = "spotlight-error";
+    errEl.textContent = `Couldn't find a Wikipedia summary (${err.message || err}).`;
+    wrap.appendChild(errEl);
   }
 }
 
