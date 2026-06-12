@@ -168,6 +168,12 @@ function getFilteredRecords() {
 
   if (artistFilter) {
     filtered = filtered.filter((r) => r.artist === artistFilter);
+    filtered.sort((a, b) => {
+      if (a.year === null && b.year === null) return 0;
+      if (a.year === null) return 1;
+      if (b.year === null) return -1;
+      return a.year - b.year;
+    });
   }
 
   if (yearFilter) {
@@ -342,6 +348,7 @@ function updateChartFilterChip() {
     label.textContent = `Decade: ${yearFilter.start}s`;
     chip.hidden = false;
   } else {
+    label.textContent = "";
     chip.hidden = true;
   }
 }

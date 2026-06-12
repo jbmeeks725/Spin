@@ -516,6 +516,10 @@ h1 {
   margin-bottom: 0.75rem;
 }
 
+.chart-filter-chip[hidden] {
+  display: none;
+}
+
 .chart-filter-chip button {
   background: none;
   border: none;
