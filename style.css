@@ -200,6 +200,65 @@ h1 {
   color: #9ca3af;
 }
 
+/* Rating controls */
+.rating-controls {
+  display: flex;
+  gap: 0.3rem;
+  margin-top: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.rating-btn {
+  font-size: 0.7rem;
+  padding: 0.2rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid #374151;
+  background: transparent;
+  color: #9ca3af;
+  cursor: pointer;
+  line-height: 1.4;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.rating-btn:hover {
+  border-color: #6b7280;
+  color: #e5e7eb;
+}
+
+.rating-btn:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+.rating-btn.rating-love.active {
+  background: #f43f5e;
+  border-color: #f43f5e;
+  color: #fff;
+}
+
+.rating-btn.rating-like.active {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: #fff;
+}
+
+.rating-btn.rating-neutral.active {
+  background: #6b7280;
+  border-color: #6b7280;
+  color: #fff;
+}
+
+.rating-btn.rating-dislike.active {
+  background: #374151;
+  border-color: #4b5563;
+  color: #e5e7eb;
+}
+
+/* Table view rating cell */
+#recordsTable .rating-controls {
+  margin-top: 0;
+}
+
 /* ------------ Table view ------------ */
 
 #tableSection {

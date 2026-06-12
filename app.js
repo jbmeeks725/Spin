@@ -13,6 +13,13 @@ let genres = [];
 let subgenres = [];
 let viewMode = "grid"; // "grid" | "table"
 
+const RATING_OPTIONS = [
+  { value: "love", label: "Love" },
+  { value: "like", label: "Like" },
+  { value: "neutral", label: "Neutral" },
+  { value: "dislike", label: "Dislike" },
+];
+
 // 4. Helpers
 function setStatus(msg) {
   document.getElementById("statusMessage").textContent = msg;
@@ -49,6 +56,7 @@ function getFilteredRecords() {
 
   const genreFilterVal = document.getElementById("genreFilter").value;
   const subgenreFilterVal = document.getElementById("subgenreFilter").value;
+  const ratingFilterVal = document.getElementById("ratingFilter").value;
 
   let filtered = allRecords.slice();
 
@@ -69,6 +77,14 @@ function getFilteredRecords() {
     filtered = filtered.filter(
       (r) => r.subgenre_id === Number(subgenreFilterVal)
     );
+  }
+
+  if (ratingFilterVal) {
+    if (ratingFilterVal === "unrated") {
+      filtered = filtered.filter((r) => !r.rating);
+    } else {
+      filtered = filtered.filter((r) => r.rating === ratingFilterVal);
+    }
   }
 
   return filtered;
@@ -99,12 +115,16 @@ function renderTable(filtered) {
     const tdLabel = document.createElement("td");
     tdLabel.textContent = r.label || "";
 
+    const tdRating = document.createElement("td");
+    tdRating.appendChild(buildRatingControls(r));
+
     tr.appendChild(tdArtist);
     tr.appendChild(tdAlbum);
     tr.appendChild(tdYear);
     tr.appendChild(tdGenre);
     tr.appendChild(tdSubgenre);
     tr.appendChild(tdLabel);
+    tr.appendChild(tdRating);
 
     tbody.appendChild(tr);
   });
@@ -165,6 +185,7 @@ function renderCards(filtered) {
     info.appendChild(artistEl);
     info.appendChild(albumEl);
     if (metaParts.length) info.appendChild(metaEl);
+    info.appendChild(buildRatingControls(r));
 
     card.appendChild(info);
     grid.appendChild(card);
@@ -210,7 +231,56 @@ function setViewMode(mode) {
   render();
 }
 
-// 5. Load data from Supabase
+async function updateRating(recordId, newRating) {
+  // Optimistically update local state first
+  const record = allRecords.find((r) => r.id === recordId);
+  const previousRating = record ? record.rating : null;
+  // Toggle off if clicking the already-active rating
+  const ratingToSet = previousRating === newRating ? null : newRating;
+
+  if (record) {
+    record.rating = ratingToSet;
+  }
+
+  render();
+
+  const { error } = await supabaseClient
+    .from("records")
+    .update({ rating: ratingToSet })
+    .eq("id", recordId);
+
+  if (error) {
+    console.error("Failed to update rating:", error);
+    setStatus("Couldn't save rating. Check console for details.");
+    // Revert on failure
+    if (record) {
+      record.rating = previousRating;
+    }
+    render();
+  }
+}
+
+function buildRatingControls(record) {
+  const wrap = document.createElement("div");
+  wrap.className = "rating-controls";
+
+  RATING_OPTIONS.forEach((opt) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = `rating-btn rating-${opt.value}`;
+    btn.textContent = opt.label;
+    btn.setAttribute("aria-pressed", record.rating === opt.value ? "true" : "false");
+    if (record.rating === opt.value) {
+      btn.classList.add("active");
+    }
+    btn.addEventListener("click", () => updateRating(record.id, opt.value));
+    wrap.appendChild(btn);
+  });
+
+  return wrap;
+}
+
+
 async function loadData() {
   try {
     setStatus("Loading genres...");
@@ -242,6 +312,7 @@ async function loadData() {
         genre_id,
         subgenre_id,
         cover_url,
+        rating,
         genres ( name ),
         subgenres ( name )
       `
@@ -278,6 +349,10 @@ function setupEvents() {
 
   document
     .getElementById("subgenreFilter")
+    .addEventListener("change", () => render());
+
+  document
+    .getElementById("ratingFilter")
     .addEventListener("change", () => render());
 
   document

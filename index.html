@@ -22,6 +22,14 @@
     <select id="subgenreFilter">
       <option value="">All subgenres</option>
     </select>
+    <select id="ratingFilter">
+      <option value="">All ratings</option>
+      <option value="love">Love</option>
+      <option value="like">Like</option>
+      <option value="neutral">Neutral</option>
+      <option value="dislike">Dislike</option>
+      <option value="unrated">Unrated</option>
+    </select>
     <div id="viewToggle" role="group" aria-label="View mode">
       <button type="button" id="gridViewBtn" class="view-btn active" aria-pressed="true">Grid</button>
       <button type="button" id="tableViewBtn" class="view-btn" aria-pressed="false">Table</button>
@@ -47,6 +55,7 @@
           <th>Genre</th>
           <th>Subgenre</th>
           <th>Label</th>
+          <th>Rating</th>
         </tr>
       </thead>
       <tbody id="recordsBody">
