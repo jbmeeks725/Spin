@@ -262,7 +262,11 @@ function renderCards(filtered) {
     } else {
       const placeholder = document.createElement("div");
       placeholder.className = "cover-img cover-placeholder";
-      placeholder.textContent = "No cover";
+      const placeholderImg = document.createElement("img");
+      placeholderImg.src = "icon-512.png";
+      placeholderImg.alt = "";
+      placeholderImg.loading = "lazy";
+      placeholder.appendChild(placeholderImg);
       coverWrap.appendChild(placeholder);
     }
 
@@ -936,7 +940,11 @@ function renderWishlist() {
     } else {
       const placeholder = document.createElement("div");
       placeholder.className = "cover-img cover-placeholder";
-      placeholder.textContent = "No cover";
+      const placeholderImg = document.createElement("img");
+      placeholderImg.src = "icon-512.png";
+      placeholderImg.alt = "";
+      placeholderImg.loading = "lazy";
+      placeholder.appendChild(placeholderImg);
       coverWrap.appendChild(placeholder);
     }
 

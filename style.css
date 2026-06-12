@@ -577,6 +577,8 @@ h1 {
   width: 100%;
   aspect-ratio: 1 / 1;
   margin-bottom: 0.5rem;
+  overflow: hidden;
+  border-radius: 4px;
 }
 
 /* Vinyl disc peeking out from behind the cover - signature touch */
@@ -615,11 +617,16 @@ h1 {
   display: flex;
   align-items: center;
   justify-content: center;
-  text-align: center;
-  padding: 0.5rem;
-  font-size: 0.8rem;
-  color: #6b7280;
+  background: #161a22;
   border: 1px dashed #374151;
+  overflow: hidden;
+}
+
+.cover-placeholder img {
+  width: 60%;
+  height: 60%;
+  object-fit: contain;
+  opacity: 0.12;
 }
 
 .record-card:hover .cover-img {
