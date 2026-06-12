@@ -2,7 +2,8 @@
 
 // 1. CONFIG: fill these with your project values
 const SUPABASE_URL = "https://wdgiskawukblqgapkmig.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndkZ2lza2F3dWtibHFnYXBrbWlnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMTIyODIsImV4cCI6MjA5Njc4ODI4Mn0.wt93Mf8TuzjFppmxNjrlPNoj4vnBplTafqBQcN1MoEo";
+const SUPABASE_ANON_KEY = "sb_publishable_KkcpYXwoOXi2XVv-UqIoiw_5G8q21CT";
+const UPLOAD_COVER_FUNCTION_URL = "https://wdgiskawukblqgapkmig.supabase.co/functions/v1/upload-cover";
 
 // 2. Create Supabase client
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -561,19 +562,27 @@ async function handleCoverFileChange(event) {
 
   try {
     const blob = await resizeImageFile(file);
-    const path = `record-${activeDetailRecordId}-${Date.now()}.jpg`;
 
-    const { error: uploadError } = await supabaseClient.storage
-      .from("album-covers")
-      .upload(path, blob, { contentType: "image/jpeg", upsert: true });
+    const formData = new FormData();
+    formData.append("file", blob, "cover.jpg");
+    formData.append("recordId", String(activeDetailRecordId));
 
-    if (uploadError) throw uploadError;
+    const response = await fetch(UPLOAD_COVER_FUNCTION_URL, {
+      method: "POST",
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      },
+      body: formData,
+    });
 
-    const { data: urlData } = supabaseClient.storage
-      .from("album-covers")
-      .getPublicUrl(path);
+    const result = await response.json();
 
-    pendingCoverUrl = urlData.publicUrl;
+    if (!response.ok) {
+      throw new Error(result.error || `Upload failed (${response.status})`);
+    }
+
+    pendingCoverUrl = result.url;
     setCoverPreview(pendingCoverUrl);
 
     statusEl.textContent = "Cover uploaded. Click Save changes to apply.";
