@@ -463,6 +463,10 @@ h1 {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
 }
 
+.detail-cover-img[hidden] {
+  display: none;
+}
+
 .detail-cover-placeholder {
   width: 100%;
   aspect-ratio: 1 / 1;
@@ -634,6 +638,10 @@ h1 {
   background: #161a22;
   border: 1px dashed #374151;
   overflow: hidden;
+}
+
+.cover-placeholder[hidden] {
+  display: none;
 }
 
 .cover-placeholder img {
