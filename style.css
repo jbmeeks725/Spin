@@ -111,6 +111,10 @@ h1 {
   z-index: 100;
 }
 
+.modal-overlay[hidden] {
+  display: none;
+}
+
 .modal {
   background: #111827;
   border: 1px solid #1f2937;
