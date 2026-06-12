@@ -254,6 +254,74 @@ h1 {
   border-color: #6b7280;
 }
 
+.btn-danger {
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  border: 1px solid #7f1d1d;
+  background: transparent;
+  color: #f87171;
+}
+
+.btn-danger:hover {
+  background: #7f1d1d;
+  color: #fff;
+}
+
+.btn-danger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.form-actions-split {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* Clickable cards/rows */
+.record-card {
+  cursor: pointer;
+}
+
+.clickable-row {
+  cursor: pointer;
+}
+
+.clickable-row:hover td {
+  background-color: #1f2937;
+}
+
+/* Detail modal cover preview */
+.detail-cover-wrap {
+  width: 140px;
+  margin: 0 auto 0.75rem;
+}
+
+.detail-cover-img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.detail-cover-placeholder {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 4px;
+}
+
+.detail-rating-controls {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.75rem;
+}
+
 #status {
   padding: 0.5rem 1.5rem;
   font-size: 0.9rem;

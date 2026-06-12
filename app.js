@@ -165,6 +165,9 @@ function renderTable(filtered) {
     tr.appendChild(tdLabel);
     tr.appendChild(tdRating);
 
+    tr.classList.add("clickable-row");
+    tr.addEventListener("click", () => openRecordDetailModal(r.id));
+
     tbody.appendChild(tr);
   });
 }
@@ -227,6 +230,7 @@ function renderCards(filtered) {
     info.appendChild(buildRatingControls(r));
 
     card.appendChild(info);
+    card.addEventListener("click", () => openRecordDetailModal(r.id));
     grid.appendChild(card);
   });
 }
@@ -312,7 +316,10 @@ function buildRatingControls(record) {
     if (record.rating === opt.value) {
       btn.classList.add("active");
     }
-    btn.addEventListener("click", () => updateRating(record.id, opt.value));
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      updateRating(record.id, opt.value);
+    });
     wrap.appendChild(btn);
   });
 
@@ -444,6 +451,11 @@ async function handleAddRecordSubmit(event) {
         subgenre_id,
         cover_url,
         rating,
+        description,
+        vinyl_grade,
+        sleeve_grade,
+        notes,
+        quantity,
         genres ( name ),
         subgenres ( name )
       `
@@ -481,6 +493,179 @@ async function handleAddRecordSubmit(event) {
 }
 
 
+// ------------ Record Detail / Edit ------------
+
+let activeDetailRecordId = null;
+
+function openRecordDetailModal(recordId) {
+  const record = allRecords.find((r) => r.id === recordId);
+  if (!record) return;
+
+  activeDetailRecordId = recordId;
+
+  document.getElementById("detailArtist").value = record.artist || "";
+  document.getElementById("detailAlbum").value = record.album || "";
+  document.getElementById("detailYear").value = record.year ?? "";
+  document.getElementById("detailQuantity").value = record.quantity ?? 1;
+  document.getElementById("detailLabel").value = record.label || "";
+  document.getElementById("detailGenre").value = record.genre_name || "";
+  document.getElementById("detailSubgenre").value = record.subgenre_name || "";
+  document.getElementById("detailVinylGrade").value = record.vinyl_grade || "";
+  document.getElementById("detailSleeveGrade").value = record.sleeve_grade || "";
+  document.getElementById("detailDescription").value = record.description || "";
+  document.getElementById("detailNotes").value = record.notes || "";
+
+  const coverImg = document.getElementById("detailCoverImg");
+  const coverPlaceholder = document.getElementById("detailCoverPlaceholder");
+  if (record.cover_url) {
+    coverImg.src = record.cover_url;
+    coverImg.alt = `${record.album} cover`;
+    coverImg.hidden = false;
+    coverPlaceholder.hidden = true;
+  } else {
+    coverImg.hidden = true;
+    coverPlaceholder.hidden = false;
+  }
+
+  const ratingWrap = document.getElementById("detailRatingControls");
+  ratingWrap.innerHTML = "";
+  ratingWrap.appendChild(buildRatingControls(record));
+
+  document.getElementById("recordDetailStatus").textContent = "";
+  document.getElementById("recordDetailStatus").className = "form-status";
+
+  document.getElementById("recordDetailOverlay").hidden = false;
+}
+
+function closeRecordDetailModal() {
+  document.getElementById("recordDetailOverlay").hidden = true;
+  activeDetailRecordId = null;
+}
+
+async function handleRecordDetailSubmit(event) {
+  event.preventDefault();
+  if (activeDetailRecordId === null) return;
+
+  const statusEl = document.getElementById("recordDetailStatus");
+  const saveBtn = document.getElementById("saveRecordDetailBtn");
+
+  const artist = document.getElementById("detailArtist").value.trim();
+  const album = document.getElementById("detailAlbum").value.trim();
+
+  if (!artist || !album) {
+    statusEl.textContent = "Artist and Album are required.";
+    statusEl.className = "form-status form-status-error";
+    return;
+  }
+
+  const yearVal = parseYearInput(document.getElementById("detailYear").value);
+  const quantityVal = parseYearInput(document.getElementById("detailQuantity").value) || 1;
+  const label = document.getElementById("detailLabel").value.trim() || null;
+  const genreInput = document.getElementById("detailGenre").value.trim();
+  const subgenreInput = document.getElementById("detailSubgenre").value.trim();
+  const vinylGrade = document.getElementById("detailVinylGrade").value.trim() || null;
+  const sleeveGrade = document.getElementById("detailSleeveGrade").value.trim() || null;
+  const description = document.getElementById("detailDescription").value.trim() || null;
+  const notes = document.getElementById("detailNotes").value.trim() || null;
+
+  saveBtn.disabled = true;
+  statusEl.textContent = "Saving...";
+  statusEl.className = "form-status";
+
+  try {
+    const genreId = await getOrCreateGenreId(genreInput);
+    const subgenreId = subgenreInput
+      ? await getOrCreateSubgenreId(subgenreInput, genreId)
+      : null;
+
+    const updates = {
+      artist,
+      album,
+      year: yearVal,
+      year_raw: yearVal !== null ? String(yearVal) : null,
+      label,
+      genre_id: genreId,
+      subgenre_id: subgenreId,
+      description,
+      vinyl_grade: vinylGrade,
+      sleeve_grade: sleeveGrade,
+      notes,
+      quantity: quantityVal,
+    };
+
+    const { error } = await supabaseClient
+      .from("records")
+      .update(updates)
+      .eq("id", activeDetailRecordId);
+
+    if (error) throw error;
+
+    // Update local copy
+    const record = allRecords.find((r) => r.id === activeDetailRecordId);
+    if (record) {
+      Object.assign(record, updates);
+      const genreObj = genres.find((g) => g.id === genreId);
+      const subgenreObj = subgenres.find((sg) => sg.id === subgenreId);
+      record.genre_name = genreObj?.name || "";
+      record.subgenre_name = subgenreObj?.name || "";
+    }
+
+    renderFilters();
+    render();
+
+    statusEl.textContent = "Saved.";
+    statusEl.className = "form-status form-status-success";
+
+    setTimeout(() => {
+      closeRecordDetailModal();
+    }, 700);
+  } catch (err) {
+    console.error(err);
+    statusEl.textContent = "Couldn't save changes. Check console for details.";
+    statusEl.className = "form-status form-status-error";
+  } finally {
+    saveBtn.disabled = false;
+  }
+}
+
+async function handleDeleteRecord() {
+  if (activeDetailRecordId === null) return;
+
+  const record = allRecords.find((r) => r.id === activeDetailRecordId);
+  const label = record ? `"${record.album}" by ${record.artist}` : "this record";
+
+  const confirmed = window.confirm(
+    `Delete ${label}? This cannot be undone.`
+  );
+  if (!confirmed) return;
+
+  const statusEl = document.getElementById("recordDetailStatus");
+  const deleteBtn = document.getElementById("deleteRecordBtn");
+  deleteBtn.disabled = true;
+  statusEl.textContent = "Deleting...";
+  statusEl.className = "form-status";
+
+  try {
+    const { error } = await supabaseClient
+      .from("records")
+      .delete()
+      .eq("id", activeDetailRecordId);
+
+    if (error) throw error;
+
+    allRecords = allRecords.filter((r) => r.id !== activeDetailRecordId);
+    render();
+    closeRecordDetailModal();
+  } catch (err) {
+    console.error(err);
+    statusEl.textContent = "Couldn't delete record. Check console for details.";
+    statusEl.className = "form-status form-status-error";
+  } finally {
+    deleteBtn.disabled = false;
+  }
+}
+
+
 async function loadData() {
   try {
     setStatus("Loading genres...");
@@ -513,6 +698,11 @@ async function loadData() {
         subgenre_id,
         cover_url,
         rating,
+        description,
+        vinyl_grade,
+        sleeve_grade,
+        notes,
+        quantity,
         genres ( name ),
         subgenres ( name )
       `
@@ -587,6 +777,31 @@ function setupEvents() {
     .addEventListener("click", (e) => {
       if (e.target.id === "addRecordOverlay") {
         closeAddRecordModal();
+      }
+    });
+
+  // Record detail / edit modal
+  document
+    .getElementById("closeRecordDetailBtn")
+    .addEventListener("click", () => closeRecordDetailModal());
+
+  document
+    .getElementById("cancelRecordDetailBtn")
+    .addEventListener("click", () => closeRecordDetailModal());
+
+  document
+    .getElementById("recordDetailForm")
+    .addEventListener("submit", handleRecordDetailSubmit);
+
+  document
+    .getElementById("deleteRecordBtn")
+    .addEventListener("click", () => handleDeleteRecord());
+
+  document
+    .getElementById("recordDetailOverlay")
+    .addEventListener("click", (e) => {
+      if (e.target.id === "recordDetailOverlay") {
+        closeRecordDetailModal();
       }
     });
 }
