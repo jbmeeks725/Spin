@@ -11,9 +11,12 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
 
 // 3. State
 let allRecords = [];
+let wishlist = [];
 let genres = [];
 let subgenres = [];
-let viewMode = "grid"; // "grid" | "table"
+let viewMode = "grid"; // "grid" | "table" | "wishlist"
+let pendingWishlistCoverUrl = null;
+let pendingWishlistDiscogsId = null;
 
 const RATING_OPTIONS = [
   { value: "love", label: "Love" },
@@ -238,6 +241,12 @@ function renderCards(filtered) {
 }
 
 function render() {
+  if (viewMode === "wishlist") {
+    renderWishlist();
+    setStatus(`${wishlist.length} item${wishlist.length === 1 ? "" : "s"} on your wishlist`);
+    return;
+  }
+
   const filtered = getFilteredRecords();
 
   if (viewMode === "grid") {
@@ -254,24 +263,35 @@ function setViewMode(mode) {
 
   const gridBtn = document.getElementById("gridViewBtn");
   const tableBtn = document.getElementById("tableViewBtn");
+  const wishlistBtn = document.getElementById("wishlistViewBtn");
   const cardSection = document.getElementById("cardSection");
   const tableSection = document.getElementById("tableSection");
+  const wishlistSection = document.getElementById("wishlistSection");
+  const filterControls = document.getElementById("collectionFilters");
 
-  if (mode === "grid") {
-    cardSection.hidden = false;
-    tableSection.hidden = true;
-    gridBtn.classList.add("active");
-    gridBtn.setAttribute("aria-pressed", "true");
-    tableBtn.classList.remove("active");
-    tableBtn.setAttribute("aria-pressed", "false");
-  } else {
-    cardSection.hidden = true;
-    tableSection.hidden = false;
-    tableBtn.classList.add("active");
-    tableBtn.setAttribute("aria-pressed", "true");
-    gridBtn.classList.remove("active");
-    gridBtn.setAttribute("aria-pressed", "false");
-  }
+  const buttons = [
+    { btn: gridBtn, mode: "grid" },
+    { btn: tableBtn, mode: "table" },
+    { btn: wishlistBtn, mode: "wishlist" },
+  ];
+
+  buttons.forEach(({ btn, mode: btnMode }) => {
+    if (btnMode === mode) {
+      btn.classList.add("active");
+      btn.setAttribute("aria-pressed", "true");
+    } else {
+      btn.classList.remove("active");
+      btn.setAttribute("aria-pressed", "false");
+    }
+  });
+
+  cardSection.hidden = mode !== "grid";
+  tableSection.hidden = mode !== "table";
+  wishlistSection.hidden = mode !== "wishlist";
+  filterControls.hidden = mode === "wishlist";
+
+  document.getElementById("addRecordBtn").hidden = mode === "wishlist";
+  document.getElementById("addWishlistBtn").hidden = mode !== "wishlist";
 
   render();
 }
@@ -329,22 +349,25 @@ function buildRatingControls(record) {
 }
 
 
-// ------------ Add Record ------------
+// ------------ Barcode scanning (shared) ------------
 
 let pendingScannedCoverUrl = null;
 let html5QrCode = null;
+let activeScanConfig = null;
 
-async function startBarcodeScan() {
-  const scannerWrap = document.getElementById("scannerWrap");
-  const scanStatus = document.getElementById("scanStatus");
-  const scanBtn = document.getElementById("scanBarcodeBtn");
+async function startBarcodeScan(scanConfig) {
+  activeScanConfig = scanConfig;
+
+  const scannerWrap = document.getElementById(scanConfig.wrapId);
+  const scanStatus = document.getElementById(scanConfig.statusId);
+  const scanBtn = document.getElementById(scanConfig.btnId);
 
   scanStatus.textContent = "";
   scanStatus.className = "form-status";
   scannerWrap.hidden = false;
   scanBtn.hidden = true;
 
-  html5QrCode = new Html5Qrcode("scannerVideo");
+  html5QrCode = new Html5Qrcode(scanConfig.videoId);
 
   const config = {
     fps: 10,
@@ -377,8 +400,10 @@ async function startBarcodeScan() {
 }
 
 async function stopBarcodeScan() {
-  const scannerWrap = document.getElementById("scannerWrap");
-  const scanBtn = document.getElementById("scanBarcodeBtn");
+  if (!activeScanConfig) return;
+
+  const scannerWrap = document.getElementById(activeScanConfig.wrapId);
+  const scanBtn = document.getElementById(activeScanConfig.btnId);
 
   if (html5QrCode) {
     try {
@@ -395,7 +420,8 @@ async function stopBarcodeScan() {
 }
 
 async function onBarcodeDetected(barcode) {
-  const scanStatus = document.getElementById("scanStatus");
+  const scanConfig = activeScanConfig;
+  const scanStatus = document.getElementById(scanConfig.statusId);
 
   await stopBarcodeScan();
 
@@ -425,18 +451,9 @@ async function onBarcodeDetected(barcode) {
       return;
     }
 
-    if (result.artist) document.getElementById("fieldArtist").value = result.artist;
-    if (result.album) document.getElementById("fieldAlbum").value = result.album;
-    if (result.year) document.getElementById("fieldYear").value = result.year;
-    if (result.label) document.getElementById("fieldLabel").value = result.label;
-    if (result.genre) document.getElementById("fieldGenre").value = result.genre;
-    if (result.style) document.getElementById("fieldSubgenre").value = result.style;
+    scanConfig.onResult(result);
 
-    if (result.cover_url) {
-      pendingScannedCoverUrl = result.cover_url;
-    }
-
-    scanStatus.textContent = "Found a match on Discogs. Review and adjust details below, then add the record.";
+    scanStatus.textContent = "Found a match on Discogs. Review and adjust details below.";
     scanStatus.className = "form-status form-status-success";
   } catch (err) {
     console.error(err);
@@ -444,6 +461,43 @@ async function onBarcodeDetected(barcode) {
     scanStatus.className = "form-status form-status-error";
   }
 }
+
+const ADD_RECORD_SCAN_CONFIG = {
+  videoId: "scannerVideo",
+  wrapId: "scannerWrap",
+  btnId: "scanBarcodeBtn",
+  cancelBtnId: "cancelScanBtn",
+  statusId: "scanStatus",
+  onResult: (result) => {
+    if (result.artist) document.getElementById("fieldArtist").value = result.artist;
+    if (result.album) document.getElementById("fieldAlbum").value = result.album;
+    if (result.year) document.getElementById("fieldYear").value = result.year;
+    if (result.label) document.getElementById("fieldLabel").value = result.label;
+    if (result.genre) document.getElementById("fieldGenre").value = result.genre;
+    if (result.style) document.getElementById("fieldSubgenre").value = result.style;
+    if (result.cover_url) pendingScannedCoverUrl = result.cover_url;
+  },
+};
+
+const ADD_WISHLIST_SCAN_CONFIG = {
+  videoId: "wishScannerVideo",
+  wrapId: "wishScannerWrap",
+  btnId: "wishScanBarcodeBtn",
+  cancelBtnId: "wishCancelScanBtn",
+  statusId: "wishScanStatus",
+  onResult: (result) => {
+    if (result.artist) document.getElementById("wishArtist").value = result.artist;
+    if (result.album) document.getElementById("wishAlbum").value = result.album;
+    if (result.year) document.getElementById("wishYear").value = result.year;
+    if (result.label) document.getElementById("wishLabel").value = result.label;
+    if (result.genre) document.getElementById("wishGenre").value = result.genre;
+    if (result.style) document.getElementById("wishSubgenre").value = result.style;
+    if (result.discogs_release_id) pendingWishlistDiscogsId = result.discogs_release_id;
+    if (result.cover_url) pendingWishlistCoverUrl = result.cover_url;
+  },
+};
+
+// ------------ Add Record ------------
 
 async function getOrCreateGenreId(genreNameRaw) {
   const name = normalizeGenre(genreNameRaw);
@@ -617,7 +671,422 @@ async function handleAddRecordSubmit(event) {
 }
 
 
-// ------------ Record Detail / Edit ------------
+// ------------ Wishlist ------------
+
+const DISCOGS_PRICE_FUNCTION_URL = "https://wdgiskawukblqgapkmig.supabase.co/functions/v1/discogs-price";
+
+function formatPrice(value, currency) {
+  if (value === null || value === undefined) return "";
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency: currency || "USD",
+    }).format(value);
+  } catch {
+    return `${value} ${currency || ""}`.trim();
+  }
+}
+
+function renderWishlist() {
+  const grid = document.getElementById("wishlistGrid");
+  grid.innerHTML = "";
+
+  if (wishlist.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "field-hint";
+    empty.textContent = "Your wishlist is empty. Use \"+ Add to Wishlist\" to start tracking albums you want next.";
+    grid.appendChild(empty);
+    return;
+  }
+
+  wishlist.forEach((w) => {
+    const card = document.createElement("div");
+    card.className = "record-card wishlist-card";
+
+    const coverWrap = document.createElement("div");
+    coverWrap.className = "cover-wrap";
+
+    const disc = document.createElement("div");
+    disc.className = "vinyl-disc";
+    coverWrap.appendChild(disc);
+
+    if (w.cover_url) {
+      const img = document.createElement("img");
+      img.className = "cover-img";
+      img.src = w.cover_url;
+      img.alt = `${w.album} cover`;
+      img.loading = "lazy";
+      coverWrap.appendChild(img);
+    } else {
+      const placeholder = document.createElement("div");
+      placeholder.className = "cover-img cover-placeholder";
+      placeholder.textContent = "No cover";
+      coverWrap.appendChild(placeholder);
+    }
+
+    card.appendChild(coverWrap);
+
+    const info = document.createElement("div");
+    info.className = "record-info";
+
+    const artistEl = document.createElement("div");
+    artistEl.className = "record-artist";
+    artistEl.textContent = w.artist;
+
+    const albumEl = document.createElement("div");
+    albumEl.className = "record-album";
+    albumEl.textContent = w.album;
+
+    const metaEl = document.createElement("div");
+    metaEl.className = "record-meta";
+    const metaParts = [];
+    if (w.year) metaParts.push(w.year);
+    if (w.genre_name) metaParts.push(w.genre_name);
+    if (w.subgenre_name) metaParts.push(w.subgenre_name);
+    metaEl.textContent = metaParts.join(" · ");
+
+    info.appendChild(artistEl);
+    info.appendChild(albumEl);
+    if (metaParts.length) info.appendChild(metaEl);
+
+    // Price section
+    const priceWrap = document.createElement("div");
+    priceWrap.className = "price-wrap";
+
+    if (w.price_data) {
+      const priceList = document.createElement("div");
+      priceList.className = "price-list";
+      Object.entries(w.price_data).forEach(([grade, info]) => {
+        const row = document.createElement("div");
+        row.className = "price-row";
+        row.textContent = `${grade}: ${formatPrice(info.value, info.currency)}`;
+        priceList.appendChild(row);
+      });
+      priceWrap.appendChild(priceList);
+
+      if (w.price_checked_at) {
+        const checkedEl = document.createElement("div");
+        checkedEl.className = "price-checked";
+        checkedEl.textContent = `Checked ${new Date(w.price_checked_at).toLocaleDateString()}`;
+        priceWrap.appendChild(checkedEl);
+      }
+    }
+
+    const priceBtn = document.createElement("button");
+    priceBtn.type = "button";
+    priceBtn.className = "btn-secondary price-btn";
+    priceBtn.textContent = w.discogs_release_id ? "Check price" : "No Discogs match";
+    priceBtn.disabled = !w.discogs_release_id;
+    priceBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      checkWishlistPrice(w.id);
+    });
+    priceWrap.appendChild(priceBtn);
+
+    info.appendChild(priceWrap);
+
+    // Actions
+    const actions = document.createElement("div");
+    actions.className = "wishlist-actions";
+
+    const moveBtn = document.createElement("button");
+    moveBtn.type = "button";
+    moveBtn.className = "btn-primary";
+    moveBtn.textContent = "Move to collection";
+    moveBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      moveWishlistItemToCollection(w.id);
+    });
+
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.className = "btn-danger";
+    removeBtn.textContent = "Remove";
+    removeBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      removeWishlistItem(w.id);
+    });
+
+    actions.appendChild(moveBtn);
+    actions.appendChild(removeBtn);
+    info.appendChild(actions);
+
+    if (w.notes) {
+      const notesEl = document.createElement("div");
+      notesEl.className = "record-meta";
+      notesEl.textContent = w.notes;
+      info.appendChild(notesEl);
+    }
+
+    card.appendChild(info);
+    grid.appendChild(card);
+  });
+}
+
+async function checkWishlistPrice(wishlistId) {
+  const item = wishlist.find((w) => w.id === wishlistId);
+  if (!item || !item.discogs_release_id) return;
+
+  setStatus("Checking price...");
+
+  try {
+    const response = await fetch(DISCOGS_PRICE_FUNCTION_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      },
+      body: JSON.stringify({ release_id: item.discogs_release_id }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.error || `Price check failed (${response.status})`);
+    }
+
+    const updates = {
+      price_data: result.price_data || null,
+      price_currency: result.currency || null,
+      price_checked_at: new Date().toISOString(),
+    };
+
+    const { error } = await supabaseClient
+      .from("wishlist")
+      .update(updates)
+      .eq("id", wishlistId);
+
+    if (error) throw error;
+
+    Object.assign(item, updates);
+    render();
+  } catch (err) {
+    console.error(err);
+    setStatus("Couldn't check price. See console for details.");
+  }
+}
+
+function openAddWishlistModal() {
+  document.getElementById("addWishlistOverlay").hidden = false;
+  document.getElementById("addWishlistStatus").textContent = "";
+  document.getElementById("wishScanStatus").textContent = "";
+  document.getElementById("wishScanStatus").className = "form-status";
+  pendingWishlistCoverUrl = null;
+  pendingWishlistDiscogsId = null;
+  document.getElementById("wishArtist").focus();
+}
+
+function closeAddWishlistModal() {
+  document.getElementById("addWishlistOverlay").hidden = true;
+  stopBarcodeScan();
+}
+
+function resetAddWishlistForm() {
+  document.getElementById("addWishlistForm").reset();
+  document.getElementById("addWishlistStatus").textContent = "";
+  document.getElementById("wishScanStatus").textContent = "";
+  document.getElementById("wishScanStatus").className = "form-status";
+  pendingWishlistCoverUrl = null;
+  pendingWishlistDiscogsId = null;
+}
+
+async function handleAddWishlistSubmit(event) {
+  event.preventDefault();
+
+  const statusEl = document.getElementById("addWishlistStatus");
+  const submitBtn = document.getElementById("submitAddWishlistBtn");
+
+  const artist = document.getElementById("wishArtist").value.trim();
+  const album = document.getElementById("wishAlbum").value.trim();
+
+  if (!artist || !album) {
+    statusEl.textContent = "Artist and Album are required.";
+    statusEl.className = "form-status form-status-error";
+    return;
+  }
+
+  const yearVal = parseYearInput(document.getElementById("wishYear").value);
+  const label = document.getElementById("wishLabel").value.trim() || null;
+  const genreInput = document.getElementById("wishGenre").value.trim();
+  const subgenreInput = document.getElementById("wishSubgenre").value.trim();
+  const notes = document.getElementById("wishNotes").value.trim() || null;
+
+  submitBtn.disabled = true;
+  statusEl.textContent = "Saving...";
+  statusEl.className = "form-status";
+
+  try {
+    const genreId = await getOrCreateGenreId(genreInput);
+    const subgenreId = subgenreInput
+      ? await getOrCreateSubgenreId(subgenreInput, genreId)
+      : null;
+
+    const newItem = {
+      artist,
+      album,
+      year: yearVal,
+      label,
+      genre_id: genreId,
+      subgenre_id: subgenreId,
+      notes,
+      discogs_release_id: pendingWishlistDiscogsId,
+      cover_url: pendingWishlistCoverUrl,
+    };
+
+    const { data, error } = await supabaseClient
+      .from("wishlist")
+      .insert(newItem)
+      .select(
+        `
+        id,
+        artist,
+        album,
+        year,
+        label,
+        genre_id,
+        subgenre_id,
+        discogs_release_id,
+        cover_url,
+        notes,
+        added_at,
+        price_data,
+        price_currency,
+        price_checked_at,
+        genres ( name ),
+        subgenres ( name )
+      `
+      )
+      .single();
+
+    if (error) throw error;
+
+    const enriched = {
+      ...data,
+      genre_name: data.genres?.name ?? "",
+      subgenre_name: data.subgenres?.name ?? "",
+    };
+
+    wishlist.unshift(enriched);
+
+    renderFilters();
+    render();
+
+    statusEl.textContent = `Added "${album}" by ${artist} to your wishlist.`;
+    statusEl.className = "form-status form-status-success";
+
+    resetAddWishlistForm();
+    setTimeout(() => {
+      closeAddWishlistModal();
+    }, 900);
+  } catch (err) {
+    console.error(err);
+    statusEl.textContent = "Couldn't save this item. Check console for details.";
+    statusEl.className = "form-status form-status-error";
+  } finally {
+    submitBtn.disabled = false;
+  }
+}
+
+async function removeWishlistItem(wishlistId) {
+  const item = wishlist.find((w) => w.id === wishlistId);
+  const label = item ? `"${item.album}" by ${item.artist}` : "this item";
+
+  const confirmed = window.confirm(`Remove ${label} from your wishlist?`);
+  if (!confirmed) return;
+
+  try {
+    const { error } = await supabaseClient
+      .from("wishlist")
+      .delete()
+      .eq("id", wishlistId);
+
+    if (error) throw error;
+
+    wishlist = wishlist.filter((w) => w.id !== wishlistId);
+    render();
+  } catch (err) {
+    console.error(err);
+    setStatus("Couldn't remove item. See console for details.");
+  }
+}
+
+async function moveWishlistItemToCollection(wishlistId) {
+  const item = wishlist.find((w) => w.id === wishlistId);
+  if (!item) return;
+
+  const confirmed = window.confirm(
+    `Move "${item.album}" by ${item.artist} to your collection?`
+  );
+  if (!confirmed) return;
+
+  try {
+    const newRecord = {
+      artist: item.artist,
+      album: item.album,
+      year: item.year,
+      year_raw: item.year !== null ? String(item.year) : null,
+      label: item.label,
+      genre_id: item.genre_id,
+      subgenre_id: item.subgenre_id,
+      cover_url: item.cover_url,
+      notes: item.notes,
+      quantity: 1,
+    };
+
+    const { data, error } = await supabaseClient
+      .from("records")
+      .insert(newRecord)
+      .select(
+        `
+        id,
+        artist,
+        album,
+        year,
+        label,
+        genre_id,
+        subgenre_id,
+        cover_url,
+        rating,
+        description,
+        vinyl_grade,
+        sleeve_grade,
+        notes,
+        quantity,
+        genres ( name ),
+        subgenres ( name )
+      `
+      )
+      .single();
+
+    if (error) throw error;
+
+    const enriched = {
+      ...data,
+      genre_name: data.genres?.name ?? "",
+      subgenre_name: data.subgenres?.name ?? "",
+    };
+
+    allRecords.push(enriched);
+    allRecords.sort((a, b) => a.artist.localeCompare(b.artist));
+
+    const { error: deleteError } = await supabaseClient
+      .from("wishlist")
+      .delete()
+      .eq("id", wishlistId);
+
+    if (deleteError) throw deleteError;
+
+    wishlist = wishlist.filter((w) => w.id !== wishlistId);
+
+    renderFilters();
+    render();
+  } catch (err) {
+    console.error(err);
+    setStatus("Couldn't move item to collection. See console for details.");
+  }
+}
+
 
 let activeDetailRecordId = null;
 let pendingCoverUrl; // undefined = no change, null = remove, string = new URL
@@ -947,6 +1416,39 @@ async function loadData() {
         subgenre_name: r.subgenres?.name ?? "",
       })) || [];
 
+    setStatus("Loading wishlist...");
+    const { data: wishlistData, error: wishlistError } = await supabaseClient
+      .from("wishlist")
+      .select(
+        `
+        id,
+        artist,
+        album,
+        year,
+        label,
+        genre_id,
+        subgenre_id,
+        discogs_release_id,
+        cover_url,
+        notes,
+        added_at,
+        price_data,
+        price_currency,
+        price_checked_at,
+        genres ( name ),
+        subgenres ( name )
+      `
+      )
+      .order("added_at", { ascending: false });
+    if (wishlistError) throw wishlistError;
+
+    wishlist =
+      wishlistData?.map((w) => ({
+        ...w,
+        genre_name: w.genres?.name ?? "",
+        subgenre_name: w.subgenres?.name ?? "",
+      })) || [];
+
     renderFilters();
     render();
   } catch (err) {
@@ -982,6 +1484,45 @@ function setupEvents() {
     .addEventListener("click", () => setViewMode("table"));
 
   document
+    .getElementById("wishlistViewBtn")
+    .addEventListener("click", () => setViewMode("wishlist"));
+
+  document
+    .getElementById("addWishlistBtn")
+    .addEventListener("click", () => openAddWishlistModal());
+
+  document
+    .getElementById("closeAddWishlistBtn")
+    .addEventListener("click", () => closeAddWishlistModal());
+
+  document
+    .getElementById("cancelAddWishlistBtn")
+    .addEventListener("click", () => {
+      resetAddWishlistForm();
+      closeAddWishlistModal();
+    });
+
+  document
+    .getElementById("addWishlistForm")
+    .addEventListener("submit", handleAddWishlistSubmit);
+
+  document
+    .getElementById("wishScanBarcodeBtn")
+    .addEventListener("click", () => startBarcodeScan(ADD_WISHLIST_SCAN_CONFIG));
+
+  document
+    .getElementById("wishCancelScanBtn")
+    .addEventListener("click", () => stopBarcodeScan());
+
+  document
+    .getElementById("addWishlistOverlay")
+    .addEventListener("click", (e) => {
+      if (e.target.id === "addWishlistOverlay") {
+        closeAddWishlistModal();
+      }
+    });
+
+  document
     .getElementById("addRecordBtn")
     .addEventListener("click", () => openAddRecordModal());
 
@@ -1002,7 +1543,7 @@ function setupEvents() {
 
   document
     .getElementById("scanBarcodeBtn")
-    .addEventListener("click", () => startBarcodeScan());
+    .addEventListener("click", () => startBarcodeScan(ADD_RECORD_SCAN_CONFIG));
 
   document
     .getElementById("cancelScanBtn")

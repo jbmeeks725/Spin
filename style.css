@@ -27,6 +27,13 @@ h1 {
   border-bottom: 1px solid #1f2937;
 }
 
+#collectionFilters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 #controls input,
 #controls select {
   padding: 0.4rem 0.6rem;
@@ -220,6 +227,74 @@ h1 {
 #scannerVideo video {
   width: 100%;
   display: block;
+}
+
+#wishScannerVideo {
+  width: 100%;
+  max-width: 320px;
+  margin: 0 auto 0.5rem;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #000;
+}
+
+#wishScannerVideo video {
+  width: 100%;
+  display: block;
+}
+
+/* ------------ Wishlist ------------ */
+
+#wishlistSection {
+  padding: 0 1.5rem 1.5rem;
+}
+
+#wishlistGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 1.25rem;
+}
+
+.wishlist-card {
+  cursor: default;
+}
+
+.price-wrap {
+  margin-top: 0.4rem;
+}
+
+.price-list {
+  font-size: 0.75rem;
+  color: #d1d5db;
+  margin-bottom: 0.3rem;
+}
+
+.price-row {
+  line-height: 1.4;
+}
+
+.price-checked {
+  font-size: 0.7rem;
+  color: #6b7280;
+  margin-bottom: 0.3rem;
+}
+
+.price-btn {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+}
+
+.wishlist-actions {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.wishlist-actions .btn-primary,
+.wishlist-actions .btn-danger {
+  font-size: 0.75rem;
+  padding: 0.3rem 0.6rem;
 }
 
 .form-status {

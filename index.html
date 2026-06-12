@@ -11,30 +11,34 @@
     <h1>My Vinyl Collection</h1>
   </header>
   <section id="controls">
-    <input
-      type="text"
-      id="searchInput"
-      placeholder="Search by artist or album..."
-    />
-    <select id="genreFilter">
-      <option value="">All genres</option>
-    </select>
-    <select id="subgenreFilter">
-      <option value="">All subgenres</option>
-    </select>
-    <select id="ratingFilter">
-      <option value="">All ratings</option>
-      <option value="love">Love</option>
-      <option value="like">Like</option>
-      <option value="neutral">Neutral</option>
-      <option value="dislike">Dislike</option>
-      <option value="unrated">Unrated</option>
-    </select>
+    <div id="collectionFilters">
+      <input
+        type="text"
+        id="searchInput"
+        placeholder="Search by artist or album..."
+      />
+      <select id="genreFilter">
+        <option value="">All genres</option>
+      </select>
+      <select id="subgenreFilter">
+        <option value="">All subgenres</option>
+      </select>
+      <select id="ratingFilter">
+        <option value="">All ratings</option>
+        <option value="love">Love</option>
+        <option value="like">Like</option>
+        <option value="neutral">Neutral</option>
+        <option value="dislike">Dislike</option>
+        <option value="unrated">Unrated</option>
+      </select>
+    </div>
     <div id="viewToggle" role="group" aria-label="View mode">
       <button type="button" id="gridViewBtn" class="view-btn active" aria-pressed="true">Grid</button>
       <button type="button" id="tableViewBtn" class="view-btn" aria-pressed="false">Table</button>
+      <button type="button" id="wishlistViewBtn" class="view-btn" aria-pressed="false">Wishlist</button>
     </div>
     <button type="button" id="addRecordBtn" class="add-record-btn">+ Add Record</button>
+    <button type="button" id="addWishlistBtn" class="add-record-btn" hidden>+ Add to Wishlist</button>
   </section>
   <section id="status">
     <span id="statusMessage">Loading records…</span>
@@ -43,6 +47,12 @@
   <section id="cardSection">
     <div id="cardGrid">
       <!-- cards will be injected here -->
+    </div>
+  </section>
+
+  <section id="wishlistSection" hidden>
+    <div id="wishlistGrid">
+      <!-- wishlist cards injected here -->
     </div>
   </section>
 
@@ -162,6 +172,70 @@
         <div class="form-actions">
           <button type="button" id="cancelAddRecordBtn" class="btn-secondary">Cancel</button>
           <button type="submit" id="submitAddRecordBtn" class="btn-primary">Add record</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add to Wishlist modal -->
+  <div id="addWishlistOverlay" class="modal-overlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="addWishlistTitle">
+      <div class="modal-header">
+        <h2 id="addWishlistTitle">Add to wishlist</h2>
+        <button type="button" id="closeAddWishlistBtn" class="modal-close" aria-label="Close">&times;</button>
+      </div>
+
+      <div class="scan-section">
+        <button type="button" id="wishScanBarcodeBtn" class="btn-secondary">Scan barcode</button>
+        <div id="wishScannerWrap" hidden>
+          <div id="wishScannerVideo"></div>
+          <button type="button" id="wishCancelScanBtn" class="btn-secondary">Cancel scan</button>
+        </div>
+        <div id="wishScanStatus" class="form-status"></div>
+      </div>
+
+      <form id="addWishlistForm">
+        <div class="form-row">
+          <label for="wishArtist">Artist *</label>
+          <input type="text" id="wishArtist" required />
+        </div>
+
+        <div class="form-row">
+          <label for="wishAlbum">Album *</label>
+          <input type="text" id="wishAlbum" required />
+        </div>
+
+        <div class="form-row">
+          <label for="wishYear">Year</label>
+          <input type="number" id="wishYear" min="1900" max="2100" />
+        </div>
+
+        <div class="form-row">
+          <label for="wishLabel">Label</label>
+          <input type="text" id="wishLabel" />
+        </div>
+
+        <div class="form-row form-row-split">
+          <div>
+            <label for="wishGenre">Genre</label>
+            <input type="text" id="wishGenre" list="genreOptions" placeholder="e.g. Jazz" />
+          </div>
+          <div>
+            <label for="wishSubgenre">Subgenre</label>
+            <input type="text" id="wishSubgenre" list="subgenreOptions" placeholder="e.g. Modal Jazz" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label for="wishNotes">Notes</label>
+          <textarea id="wishNotes" rows="2"></textarea>
+        </div>
+
+        <div id="addWishlistStatus" class="form-status"></div>
+
+        <div class="form-actions">
+          <button type="button" id="cancelAddWishlistBtn" class="btn-secondary">Cancel</button>
+          <button type="submit" id="submitAddWishlistBtn" class="btn-primary">Add to wishlist</button>
         </div>
       </form>
     </div>
