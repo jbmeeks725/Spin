@@ -389,6 +389,32 @@ h1 {
   border-color: #6b7280;
 }
 
+.import-preview {
+  background: #0b1220;
+  border: 1px solid #374151;
+  border-radius: 4px;
+  padding: 0.6rem 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.import-column-map {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.25rem 0.75rem;
+  margin-top: 0.4rem;
+}
+
+.import-column-map span.mapped {
+  color: #d1d5db;
+}
+
+.import-column-map span.unmapped {
+  color: #6b7280;
+  font-style: italic;
+}
+
 .btn-danger {
   padding: 0.5rem 1rem;
   border-radius: 4px;

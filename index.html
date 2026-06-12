@@ -63,6 +63,7 @@
     </div>
     <button type="button" id="addRecordBtn" class="add-record-btn">+ Add Record</button>
     <button type="button" id="addWishlistBtn" class="add-record-btn" hidden>+ Add to Wishlist</button>
+    <button type="button" id="importBtn" class="btn-secondary">Import from spreadsheet</button>
   </section>
   <section id="status">
     <span id="statusMessage">Loading records…</span>
@@ -269,6 +270,41 @@
     </div>
   </div>
 
+  <!-- Bulk Import modal -->
+  <div id="importOverlay" class="modal-overlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="importTitle">
+      <div class="modal-header">
+        <h2 id="importTitle">Import from spreadsheet</h2>
+        <button type="button" id="closeImportBtn" class="modal-close" aria-label="Close">&times;</button>
+      </div>
+
+      <div class="form-row">
+        <label for="importTarget">Import into</label>
+        <select id="importTarget">
+          <option value="records">My Collection</option>
+          <option value="wishlist">My Wishlist</option>
+        </select>
+      </div>
+
+      <div class="form-row">
+        <label for="importFile">Spreadsheet file (.xlsx, .xls, .csv)</label>
+        <input type="file" id="importFile" accept=".xlsx,.xls,.csv" />
+      </div>
+
+      <div id="importPreview" class="import-preview" hidden>
+        <p id="importSummary" class="field-hint"></p>
+        <div id="importColumnMap" class="import-column-map"></div>
+      </div>
+
+      <div id="importStatus" class="form-status"></div>
+
+      <div class="form-actions">
+        <button type="button" id="cancelImportBtn" class="btn-secondary">Cancel</button>
+        <button type="button" id="confirmImportBtn" class="btn-primary" disabled>Import</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Record Detail / Edit modal -->
   <div id="recordDetailOverlay" class="modal-overlay" hidden>
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="recordDetailTitle">
@@ -371,6 +407,9 @@
 
   <!-- Charts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Spreadsheet parsing -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
   <!-- Supabase JS (client-side) -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>

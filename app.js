@@ -22,6 +22,22 @@ let yearFilter = null; // { start, end }
 let genreChart = null;
 let artistChart = null;
 let decadeChart = null;
+let importRawRows = [];
+let importParsedRows = [];
+
+const IMPORT_COLUMN_ALIASES = {
+  artist: ["artist"],
+  album: ["album", "title"],
+  year: ["year"],
+  label: ["label"],
+  genre: ["genre"],
+  subgenre: ["subgenre", "subgenres", "style"],
+  description: ["description"],
+  vinylGrade: ["vinylgrade", "mediagrade", "vinyl"],
+  sleeveGrade: ["sleevegrade", "jacketgrade", "covergrade", "sleeve"],
+  notes: ["notes", "comments"],
+  quantity: ["quantity", "qty"],
+};
 
 const RATING_OPTIONS = [
   { value: "love", label: "Love" },
@@ -63,6 +79,33 @@ function genreNameById(id) {
 function subgenreNameById(id) {
   if (!id) return "";
   return subgenres.find((sg) => sg.id === id)?.name ?? "";
+}
+
+function normalizeHeader(h) {
+  return String(h).toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function findColumnKey(rowKeys, aliasList) {
+  for (const key of rowKeys) {
+    if (aliasList.includes(normalizeHeader(key))) return key;
+  }
+  return null;
+}
+
+function parseYearFlexible(value) {
+  if (value === null || value === undefined || value === "") {
+    return { year: null, yearRaw: null };
+  }
+  if (typeof value === "number") {
+    return { year: Math.trunc(value), yearRaw: String(value) };
+  }
+  const str = String(value).trim();
+  if (!str) return { year: null, yearRaw: null };
+  const match = str.match(/\b(\d{4})\b/);
+  if (match) {
+    return { year: parseInt(match[1], 10), yearRaw: str };
+  }
+  return { year: null, yearRaw: str };
 }
 
 
@@ -1258,6 +1301,296 @@ async function moveWishlistItemToCollection(wishlistId) {
 }
 
 
+// ------------ Bulk Import ------------
+
+function buildImportPreview() {
+  const preview = document.getElementById("importPreview");
+  const summary = document.getElementById("importSummary");
+  const colMap = document.getElementById("importColumnMap");
+  const confirmBtn = document.getElementById("confirmImportBtn");
+
+  if (!importRawRows || importRawRows.length === 0) {
+    preview.hidden = true;
+    confirmBtn.disabled = true;
+    importParsedRows = [];
+    return;
+  }
+
+  const target = document.getElementById("importTarget").value;
+  const rowKeys = Object.keys(importRawRows[0]);
+
+  const colKeys = {};
+  Object.keys(IMPORT_COLUMN_ALIASES).forEach((field) => {
+    colKeys[field] = findColumnKey(rowKeys, IMPORT_COLUMN_ALIASES[field]);
+  });
+
+  const relevantFields =
+    target === "records"
+      ? ["artist", "album", "year", "label", "genre", "subgenre", "description", "vinylGrade", "sleeveGrade", "notes", "quantity"]
+      : ["artist", "album", "year", "label", "genre", "subgenre", "notes"];
+
+  const parsed = [];
+  let skipped = 0;
+
+  importRawRows.forEach((row) => {
+    const artistRaw = colKeys.artist ? row[colKeys.artist] : null;
+    const albumRaw = colKeys.album ? row[colKeys.album] : null;
+
+    const artistStr = artistRaw != null ? String(artistRaw).trim() : "";
+    const albumStr = albumRaw != null ? String(albumRaw).trim() : "";
+
+    if (!artistStr || !albumStr) {
+      skipped++;
+      return;
+    }
+
+    const { year, yearRaw } = colKeys.year
+      ? parseYearFlexible(row[colKeys.year])
+      : { year: null, yearRaw: null };
+
+    const genreRaw = colKeys.genre ? row[colKeys.genre] : null;
+    const subgenreRaw = colKeys.subgenre ? row[colKeys.subgenre] : null;
+
+    const item = {
+      artist: artistStr,
+      album: albumStr,
+      year,
+      year_raw: yearRaw,
+      label: colKeys.label && row[colKeys.label] != null ? String(row[colKeys.label]).trim() || null : null,
+      _genreNorm: normalizeGenre(genreRaw != null ? String(genreRaw) : null),
+      _subgenreNorm: normalizeGenre(subgenreRaw != null ? String(subgenreRaw) : null),
+      notes: colKeys.notes && row[colKeys.notes] != null ? String(row[colKeys.notes]).trim() || null : null,
+    };
+
+    if (target === "records") {
+      item.description =
+        colKeys.description && row[colKeys.description] != null
+          ? String(row[colKeys.description]).trim() || null
+          : null;
+      item.vinyl_grade =
+        colKeys.vinylGrade && row[colKeys.vinylGrade] != null
+          ? String(row[colKeys.vinylGrade]).trim() || null
+          : null;
+      item.sleeve_grade =
+        colKeys.sleeveGrade && row[colKeys.sleeveGrade] != null
+          ? String(row[colKeys.sleeveGrade]).trim() || null
+          : null;
+
+      let qty = 1;
+      if (colKeys.quantity && row[colKeys.quantity] != null) {
+        const n = parseYearInput(row[colKeys.quantity]);
+        qty = n && n > 0 ? n : 1;
+      }
+      item.quantity = qty;
+    }
+
+    parsed.push(item);
+  });
+
+  importParsedRows = parsed;
+
+  const existingGenreNames = new Set(genres.map((g) => g.name.toLowerCase()));
+  const existingSubgenreNames = new Set(subgenres.map((sg) => sg.name.toLowerCase()));
+  const newGenres = new Set();
+  const newSubgenres = new Set();
+
+  parsed.forEach((r) => {
+    if (r._genreNorm && !existingGenreNames.has(r._genreNorm.toLowerCase())) {
+      newGenres.add(r._genreNorm);
+    }
+    if (r._subgenreNorm && !existingSubgenreNames.has(r._subgenreNorm.toLowerCase())) {
+      newSubgenres.add(r._subgenreNorm);
+    }
+  });
+
+  summary.textContent =
+    `${parsed.length} row${parsed.length === 1 ? "" : "s"} ready to import` +
+    (skipped ? ` (${skipped} skipped — missing artist or album)` : "") +
+    `. ${newGenres.size} new genre${newGenres.size === 1 ? "" : "s"} and ` +
+    `${newSubgenres.size} new subgenre${newSubgenres.size === 1 ? "" : "s"} will be created.`;
+
+  colMap.innerHTML = "";
+  relevantFields.forEach((field) => {
+    const span = document.createElement("span");
+    const key = colKeys[field];
+    span.className = key ? "mapped" : "unmapped";
+    span.textContent = `${field}: ${key ? `"${key}"` : "not found"}`;
+    colMap.appendChild(span);
+  });
+
+  preview.hidden = false;
+  confirmBtn.disabled = parsed.length === 0;
+}
+
+async function handleImportFileChange(event) {
+  const file = event.target.files && event.target.files[0];
+  const statusEl = document.getElementById("importStatus");
+  statusEl.textContent = "";
+  statusEl.className = "form-status";
+
+  if (!file) {
+    importRawRows = [];
+    buildImportPreview();
+    return;
+  }
+
+  try {
+    const data = await file.arrayBuffer();
+    const workbook = XLSX.read(data, { type: "array" });
+    const firstSheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[firstSheetName];
+    importRawRows = XLSX.utils.sheet_to_json(sheet, { defval: null });
+    buildImportPreview();
+  } catch (err) {
+    console.error(err);
+    statusEl.textContent = "Couldn't read this file. Check console for details.";
+    statusEl.className = "form-status form-status-error";
+    importRawRows = [];
+    buildImportPreview();
+  }
+}
+
+async function ensureGenresAndSubgenres(rows) {
+  const existingGenreNames = new Set(genres.map((g) => g.name.toLowerCase()));
+  const newGenreNames = new Set();
+
+  rows.forEach((r) => {
+    if (r._genreNorm && !existingGenreNames.has(r._genreNorm.toLowerCase())) {
+      newGenreNames.add(r._genreNorm);
+    }
+  });
+
+  if (newGenreNames.size > 0) {
+    const insertRows = Array.from(newGenreNames).map((name) => ({ name }));
+    const { data, error } = await supabaseClient.from("genres").insert(insertRows).select();
+    if (error) throw error;
+    genres.push(...data);
+  }
+
+  const genreIdByName = {};
+  genres.forEach((g) => {
+    genreIdByName[g.name.toLowerCase()] = g.id;
+  });
+
+  const existingSubgenreNames = new Set(subgenres.map((sg) => sg.name.toLowerCase()));
+  const newSubgenres = new Map();
+
+  rows.forEach((r) => {
+    if (!r._subgenreNorm) return;
+    const key = r._subgenreNorm.toLowerCase();
+    if (existingSubgenreNames.has(key) || newSubgenres.has(key)) return;
+    const genreId = r._genreNorm ? genreIdByName[r._genreNorm.toLowerCase()] ?? null : null;
+    newSubgenres.set(key, { name: r._subgenreNorm, genre_id: genreId });
+  });
+
+  if (newSubgenres.size > 0) {
+    const insertRows = Array.from(newSubgenres.values());
+    const { data, error } = await supabaseClient.from("subgenres").insert(insertRows).select();
+    if (error) throw error;
+    subgenres.push(...data);
+  }
+
+  const subgenreIdByName = {};
+  subgenres.forEach((sg) => {
+    subgenreIdByName[sg.name.toLowerCase()] = sg.id;
+  });
+
+  rows.forEach((r) => {
+    r.genre_id = r._genreNorm ? genreIdByName[r._genreNorm.toLowerCase()] ?? null : null;
+    r.subgenre_id = r._subgenreNorm ? subgenreIdByName[r._subgenreNorm.toLowerCase()] ?? null : null;
+  });
+}
+
+async function handleConfirmImport() {
+  const statusEl = document.getElementById("importStatus");
+  const confirmBtn = document.getElementById("confirmImportBtn");
+  const target = document.getElementById("importTarget").value;
+
+  if (!importParsedRows || importParsedRows.length === 0) return;
+
+  confirmBtn.disabled = true;
+  statusEl.className = "form-status";
+  statusEl.textContent = "Preparing genres and subgenres...";
+
+  try {
+    await ensureGenresAndSubgenres(importParsedRows);
+
+    const rows = importParsedRows.map((r) => {
+      const base = {
+        artist: r.artist,
+        album: r.album,
+        year: r.year,
+        label: r.label,
+        genre_id: r.genre_id,
+        subgenre_id: r.subgenre_id,
+        notes: r.notes,
+        cover_url: null,
+      };
+
+      if (target === "records") {
+        return {
+          ...base,
+          year_raw: r.year_raw,
+          description: r.description,
+          vinyl_grade: r.vinyl_grade,
+          sleeve_grade: r.sleeve_grade,
+          quantity: r.quantity,
+        };
+      }
+
+      return {
+        ...base,
+        discogs_release_id: null,
+      };
+    });
+
+    const BATCH_SIZE = 100;
+    let inserted = 0;
+
+    for (let start = 0; start < rows.length; start += BATCH_SIZE) {
+      const chunk = rows.slice(start, start + BATCH_SIZE);
+      statusEl.textContent = `Importing ${start + 1}–${Math.min(start + BATCH_SIZE, rows.length)} of ${rows.length}...`;
+      const { error } = await supabaseClient.from(target).insert(chunk);
+      if (error) throw error;
+      inserted += chunk.length;
+    }
+
+    statusEl.textContent = `Imported ${inserted} item${inserted === 1 ? "" : "s"}. Refreshing...`;
+    statusEl.className = "form-status form-status-success";
+
+    await loadData();
+
+    statusEl.textContent = `Imported ${inserted} item${inserted === 1 ? "" : "s"} successfully.`;
+
+    setTimeout(() => {
+      closeImportModal();
+    }, 1200);
+  } catch (err) {
+    console.error(err);
+    statusEl.textContent = "Import failed. Check console for details.";
+    statusEl.className = "form-status form-status-error";
+  } finally {
+    confirmBtn.disabled = importParsedRows.length === 0;
+  }
+}
+
+function openImportModal() {
+  document.getElementById("importOverlay").hidden = false;
+  document.getElementById("importTarget").value = currentPage === "wishlist" ? "wishlist" : "records";
+  document.getElementById("importStatus").textContent = "";
+  document.getElementById("importStatus").className = "form-status";
+  document.getElementById("importPreview").hidden = true;
+  document.getElementById("confirmImportBtn").disabled = true;
+  document.getElementById("importFile").value = "";
+  importRawRows = [];
+  importParsedRows = [];
+}
+
+function closeImportModal() {
+  document.getElementById("importOverlay").hidden = true;
+}
+
+
 let activeDetailRecordId = null;
 let pendingCoverUrl; // undefined = no change, null = remove, string = new URL
 
@@ -1673,6 +2006,39 @@ function setupEvents() {
   gridColsSelect.value = savedCols;
   applyGridCols(savedCols);
   gridColsSelect.addEventListener("change", (e) => applyGridCols(e.target.value));
+
+  document
+    .getElementById("importBtn")
+    .addEventListener("click", () => openImportModal());
+
+  document
+    .getElementById("closeImportBtn")
+    .addEventListener("click", () => closeImportModal());
+
+  document
+    .getElementById("cancelImportBtn")
+    .addEventListener("click", () => closeImportModal());
+
+  document
+    .getElementById("importFile")
+    .addEventListener("change", handleImportFileChange);
+
+  document
+    .getElementById("importTarget")
+    .addEventListener("change", () => buildImportPreview());
+
+  document
+    .getElementById("confirmImportBtn")
+    .addEventListener("click", () => handleConfirmImport());
+
+  document
+    .getElementById("importOverlay")
+    .addEventListener("click", (e) => {
+      if (e.target.id === "importOverlay") {
+        closeImportModal();
+      }
+    });
+
 
   document
     .getElementById("addWishlistBtn")
