@@ -12,9 +12,24 @@ header {
   border-bottom: 1px solid #1f2937;
 }
 
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.brand-logo {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 8px;
+}
+
 h1 {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
 }
 
 #controls {
@@ -46,7 +61,7 @@ h1 {
 #controls input:focus,
 #controls select:focus {
   outline: none;
-  border-color: #3b82f6;
+  border-color: #caa15a;
 }
 
 /* View toggle */
@@ -76,12 +91,12 @@ h1 {
 }
 
 .view-btn.active {
-  background: #3b82f6;
-  color: #f9fafb;
+  background: #caa15a;
+  color: #1a1408;
 }
 
 .view-btn:focus-visible {
-  outline: 2px solid #3b82f6;
+  outline: 2px solid #caa15a;
   outline-offset: 2px;
 }
 
@@ -89,19 +104,19 @@ h1 {
 .add-record-btn {
   padding: 0.4rem 0.8rem;
   border-radius: 4px;
-  border: 1px solid #3b82f6;
-  background: #1d4ed8;
+  border: 1px solid #caa15a;
+  background: #8a6a2f;
   color: #f9fafb;
   font-size: 0.85rem;
   cursor: pointer;
 }
 
 .add-record-btn:hover {
-  background: #2563eb;
+  background: #a9823f;
 }
 
 .add-record-btn:focus-visible {
-  outline: 2px solid #93c5fd;
+  outline: 2px solid #e8d4a8;
   outline-offset: 2px;
 }
 
@@ -185,7 +200,7 @@ h1 {
 .form-row input:focus,
 .form-row textarea:focus {
   outline: none;
-  border-color: #3b82f6;
+  border-color: #caa15a;
 }
 
 .form-row-split {
@@ -327,13 +342,13 @@ h1 {
 }
 
 .btn-primary {
-  background: #1d4ed8;
+  background: #8a6a2f;
   color: #f9fafb;
-  border-color: #3b82f6;
+  border-color: #caa15a;
 }
 
 .btn-primary:hover {
-  background: #2563eb;
+  background: #a9823f;
 }
 
 .btn-primary:disabled {
@@ -579,7 +594,7 @@ h1 {
 }
 
 .rating-btn:focus-visible {
-  outline: 2px solid #3b82f6;
+  outline: 2px solid #caa15a;
   outline-offset: 2px;
 }
 
