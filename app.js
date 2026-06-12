@@ -1130,6 +1130,7 @@ async function findWishlistDiscogsMatch(wishlistId) {
 
   try {
     const result = await lookupDiscogsByArtistAlbum(item.artist, item.album);
+    console.log("Discogs lookup debug:", result.debug, result);
 
     if (!result.found) {
       setStatus(`No Discogs match found for "${item.album}" by ${item.artist}.`);
