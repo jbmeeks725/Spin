@@ -78,19 +78,19 @@
       <div class="home-card home-stats">
         <h2>Your Collection at a Glance</h2>
         <div class="stat-row">
-          <div class="stat">
+          <div class="stat" id="statRecordsBox" tabindex="0" role="button" aria-label="View collection">
             <span class="stat-value" id="statTotalRecords">—</span>
             <span class="stat-label">Records</span>
           </div>
-          <div class="stat">
+          <div class="stat" id="statGenresBox" tabindex="0" role="button" aria-label="View genre chart">
             <span class="stat-value" id="statTotalGenres">—</span>
             <span class="stat-label">Genres</span>
           </div>
-          <div class="stat">
-            <span class="stat-value" id="statDecadeSpan">—</span>
-            <span class="stat-label">Decades</span>
+          <div class="stat" id="statDecadeBox" tabindex="0" role="button" aria-label="View decade chart">
+            <span class="stat-value stat-value-text" id="statDecadeSpan">—</span>
+            <span class="stat-label">Decade range</span>
           </div>
-          <div class="stat">
+          <div class="stat" id="statWishlistBox" tabindex="0" role="button" aria-label="View wishlist">
             <span class="stat-value" id="statWishlistCount">—</span>
             <span class="stat-label">Wishlist</span>
           </div>
@@ -98,9 +98,11 @@
       </div>
 
       <div class="home-card home-spotlight">
-        <h2>Spotlight</h2>
+        <div class="home-card-header">
+          <h2>Spotlight</h2>
+          <button type="button" id="spotlightShuffleBtn" class="icon-btn" aria-label="Shuffle spotlight" title="Shuffle">⟲</button>
+        </div>
         <div id="spotlightContent" class="spotlight-content"></div>
-        <button type="button" id="spotlightShuffleBtn" class="btn-secondary">Shuffle</button>
       </div>
 
       <div class="home-card home-recent">
@@ -116,10 +118,11 @@
       <div class="home-card home-recommendations">
         <h2>Suggested For You</h2>
         <p class="field-hint">Based on the albums you've rated "Love" and "Like."</p>
-        <button type="button" id="getRecommendationsBtn" class="btn-secondary">Get recommendations</button>
+        <button type="button" id="getRecommendationsBtn" class="btn-primary">Get recommendations</button>
         <div id="recommendationsStatus" class="form-status"></div>
         <div id="recommendationsList" class="recommendations-list"></div>
       </div>
+
     </div>
   </section>
 

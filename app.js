@@ -350,10 +350,13 @@ function renderStats() {
   if (years.length > 0) {
     const minDecade = Math.floor(Math.min(...years) / 10) * 10;
     const maxDecade = Math.floor(Math.max(...years) / 10) * 10;
-    const decadeCount = Math.round((maxDecade - minDecade) / 10) + 1;
-    document.getElementById("statDecadeSpan").textContent = decadeCount;
+    if (minDecade === maxDecade) {
+      document.getElementById("statDecadeSpan").textContent = `${minDecade}s`;
+    } else {
+      document.getElementById("statDecadeSpan").textContent = `${minDecade}s\u2013${maxDecade}s`;
+    }
   } else {
-    document.getElementById("statDecadeSpan").textContent = "0";
+    document.getElementById("statDecadeSpan").textContent = "\u2014";
   }
 
   document.getElementById("statWishlistCount").textContent = wishlist.length;
@@ -489,6 +492,18 @@ function renderHome() {
   renderSpotlight();
   renderRecentlyAdded();
   renderWishlistHighlights();
+}
+
+function goToChart(canvasId) {
+  setPage("collection");
+  requestAnimationFrame(() => {
+    const canvas = document.getElementById(canvasId);
+    const card = canvas ? canvas.closest(".chart-card") : null;
+    if (!card) return;
+    card.scrollIntoView({ behavior: "smooth", block: "center" });
+    card.classList.add("highlight");
+    setTimeout(() => card.classList.remove("highlight"), 1200);
+  });
 }
 
 // ------------ AI Recommendations ------------
@@ -2594,6 +2609,27 @@ function setupEvents() {
   document
     .getElementById("homePageBtn")
     .addEventListener("click", () => setPage("home"));
+
+  function makeKeyboardClickable(el) {
+    el.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        el.click();
+      }
+    });
+  }
+
+  const statRecordsBox = document.getElementById("statRecordsBox");
+  const statGenresBox = document.getElementById("statGenresBox");
+  const statDecadeBox = document.getElementById("statDecadeBox");
+  const statWishlistBox = document.getElementById("statWishlistBox");
+
+  statRecordsBox.addEventListener("click", () => setPage("collection"));
+  statGenresBox.addEventListener("click", () => goToChart("genreChart"));
+  statDecadeBox.addEventListener("click", () => goToChart("decadeChart"));
+  statWishlistBox.addEventListener("click", () => setPage("wishlist"));
+
+  [statRecordsBox, statGenresBox, statDecadeBox, statWishlistBox].forEach(makeKeyboardClickable);
 
   document
     .getElementById("collectionPageBtn")
