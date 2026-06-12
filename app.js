@@ -11,6 +11,7 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
 let allRecords = [];
 let genres = [];
 let subgenres = [];
+let viewMode = "grid"; // "grid" | "table"
 
 // 4. Helpers
 function setStatus(msg) {
@@ -40,10 +41,7 @@ function renderFilters() {
   });
 }
 
-function renderTable() {
-  const tbody = document.getElementById("recordsBody");
-  tbody.innerHTML = "";
-
+function getFilteredRecords() {
   const searchText = document
     .getElementById("searchInput")
     .value.trim()
@@ -72,6 +70,13 @@ function renderTable() {
       (r) => r.subgenre_id === Number(subgenreFilterVal)
     );
   }
+
+  return filtered;
+}
+
+function renderTable(filtered) {
+  const tbody = document.getElementById("recordsBody");
+  tbody.innerHTML = "";
 
   filtered.forEach((r) => {
     const tr = document.createElement("tr");
@@ -103,8 +108,106 @@ function renderTable() {
 
     tbody.appendChild(tr);
   });
+}
+
+function renderCards(filtered) {
+  const grid = document.getElementById("cardGrid");
+  grid.innerHTML = "";
+
+  filtered.forEach((r) => {
+    const card = document.createElement("div");
+    card.className = "record-card";
+
+    // Cover wrap (image or placeholder, with vinyl disc peeking behind)
+    const coverWrap = document.createElement("div");
+    coverWrap.className = "cover-wrap";
+
+    const disc = document.createElement("div");
+    disc.className = "vinyl-disc";
+    coverWrap.appendChild(disc);
+
+    if (r.cover_url) {
+      const img = document.createElement("img");
+      img.className = "cover-img";
+      img.src = r.cover_url;
+      img.alt = `${r.album} cover`;
+      img.loading = "lazy";
+      coverWrap.appendChild(img);
+    } else {
+      const placeholder = document.createElement("div");
+      placeholder.className = "cover-img cover-placeholder";
+      placeholder.textContent = "No cover";
+      coverWrap.appendChild(placeholder);
+    }
+
+    card.appendChild(coverWrap);
+
+    // Info block
+    const info = document.createElement("div");
+    info.className = "record-info";
+
+    const artistEl = document.createElement("div");
+    artistEl.className = "record-artist";
+    artistEl.textContent = r.artist;
+
+    const albumEl = document.createElement("div");
+    albumEl.className = "record-album";
+    albumEl.textContent = r.album;
+
+    const metaEl = document.createElement("div");
+    metaEl.className = "record-meta";
+    const metaParts = [];
+    if (r.year) metaParts.push(r.year);
+    if (r.genre_name) metaParts.push(r.genre_name);
+    if (r.subgenre_name) metaParts.push(r.subgenre_name);
+    metaEl.textContent = metaParts.join(" · ");
+
+    info.appendChild(artistEl);
+    info.appendChild(albumEl);
+    if (metaParts.length) info.appendChild(metaEl);
+
+    card.appendChild(info);
+    grid.appendChild(card);
+  });
+}
+
+function render() {
+  const filtered = getFilteredRecords();
+
+  if (viewMode === "grid") {
+    renderCards(filtered);
+  } else {
+    renderTable(filtered);
+  }
 
   setStatus(`Showing ${filtered.length} of ${allRecords.length} records`);
+}
+
+function setViewMode(mode) {
+  viewMode = mode;
+
+  const gridBtn = document.getElementById("gridViewBtn");
+  const tableBtn = document.getElementById("tableViewBtn");
+  const cardSection = document.getElementById("cardSection");
+  const tableSection = document.getElementById("tableSection");
+
+  if (mode === "grid") {
+    cardSection.hidden = false;
+    tableSection.hidden = true;
+    gridBtn.classList.add("active");
+    gridBtn.setAttribute("aria-pressed", "true");
+    tableBtn.classList.remove("active");
+    tableBtn.setAttribute("aria-pressed", "false");
+  } else {
+    cardSection.hidden = true;
+    tableSection.hidden = false;
+    tableBtn.classList.add("active");
+    tableBtn.setAttribute("aria-pressed", "true");
+    gridBtn.classList.remove("active");
+    gridBtn.setAttribute("aria-pressed", "false");
+  }
+
+  render();
 }
 
 // 5. Load data from Supabase
@@ -138,6 +241,7 @@ async function loadData() {
         label,
         genre_id,
         subgenre_id,
+        cover_url,
         genres ( name ),
         subgenres ( name )
       `
@@ -155,7 +259,7 @@ async function loadData() {
       })) || [];
 
     renderFilters();
-    renderTable();
+    render();
   } catch (err) {
     console.error(err);
     setStatus("Error loading data. See console for details.");
@@ -166,15 +270,23 @@ async function loadData() {
 function setupEvents() {
   document
     .getElementById("searchInput")
-    .addEventListener("input", () => renderTable());
+    .addEventListener("input", () => render());
 
   document
     .getElementById("genreFilter")
-    .addEventListener("change", () => renderTable());
+    .addEventListener("change", () => render());
 
   document
     .getElementById("subgenreFilter")
-    .addEventListener("change", () => renderTable());
+    .addEventListener("change", () => render());
+
+  document
+    .getElementById("gridViewBtn")
+    .addEventListener("click", () => setViewMode("grid"));
+
+  document
+    .getElementById("tableViewBtn")
+    .addEventListener("click", () => setViewMode("table"));
 }
 
 // 7. Initialize

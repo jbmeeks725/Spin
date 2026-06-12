@@ -10,28 +10,34 @@
   <header>
     <h1>My Vinyl Collection</h1>
   </header>
-
   <section id="controls">
     <input
       type="text"
       id="searchInput"
       placeholder="Search by artist or album..."
     />
-
     <select id="genreFilter">
       <option value="">All genres</option>
     </select>
-
     <select id="subgenreFilter">
       <option value="">All subgenres</option>
     </select>
+    <div id="viewToggle" role="group" aria-label="View mode">
+      <button type="button" id="gridViewBtn" class="view-btn active" aria-pressed="true">Grid</button>
+      <button type="button" id="tableViewBtn" class="view-btn" aria-pressed="false">Table</button>
+    </div>
   </section>
-
   <section id="status">
     <span id="statusMessage">Loading records…</span>
   </section>
 
-  <section id="tableSection">
+  <section id="cardSection">
+    <div id="cardGrid">
+      <!-- cards will be injected here -->
+    </div>
+  </section>
+
+  <section id="tableSection" hidden>
     <table id="recordsTable">
       <thead>
         <tr>

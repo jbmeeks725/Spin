@@ -20,6 +20,7 @@ h1 {
 #controls {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 0.5rem;
   padding: 1rem 1.5rem;
   background: #020617;
@@ -41,11 +42,165 @@ h1 {
   border-color: #3b82f6;
 }
 
+/* View toggle */
+#viewToggle {
+  display: flex;
+  margin-left: auto;
+  border: 1px solid #374151;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.view-btn {
+  padding: 0.4rem 0.8rem;
+  border: none;
+  background: #111827;
+  color: #9ca3af;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.view-btn + .view-btn {
+  border-left: 1px solid #374151;
+}
+
+.view-btn:hover {
+  color: #e5e7eb;
+}
+
+.view-btn.active {
+  background: #3b82f6;
+  color: #f9fafb;
+}
+
+.view-btn:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
 #status {
   padding: 0.5rem 1.5rem;
   font-size: 0.9rem;
   color: #9ca3af;
 }
+
+/* ------------ Card grid ------------ */
+
+#cardSection {
+  padding: 0 1.5rem 1.5rem;
+}
+
+#cardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 1.25rem;
+}
+
+.record-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.cover-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  margin-bottom: 0.5rem;
+}
+
+/* Vinyl disc peeking out from behind the cover - signature touch */
+.vinyl-disc {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at center, #0a0a0a 0 6%, transparent 6.5%),
+    repeating-radial-gradient(
+      circle at center,
+      #15171c 0px,
+      #15171c 2px,
+      #1f2228 2px,
+      #1f2228 4px
+    );
+  box-shadow: inset 0 0 0 10px #0b0c0f;
+  transform: translateX(6%);
+  z-index: 0;
+}
+
+.cover-img {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 4px;
+  background: #1f2937;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.cover-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0.5rem;
+  font-size: 0.8rem;
+  color: #6b7280;
+  border: 1px dashed #374151;
+}
+
+.record-card:hover .cover-img {
+  transform: translateX(-8%) rotate(-3deg);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.6);
+}
+
+.record-card:hover .vinyl-disc {
+  animation: spin 4s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: translateX(6%) rotate(0deg);
+  }
+  to {
+    transform: translateX(6%) rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cover-img,
+  .vinyl-disc {
+    transition: none;
+    animation: none;
+  }
+  .record-card:hover .cover-img {
+    transform: none;
+  }
+}
+
+.record-info {
+  font-size: 0.85rem;
+}
+
+.record-artist {
+  font-weight: 600;
+  color: #f9fafb;
+}
+
+.record-album {
+  color: #d1d5db;
+  font-style: italic;
+}
+
+.record-meta {
+  margin-top: 0.15rem;
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+/* ------------ Table view ------------ */
 
 #tableSection {
   padding: 0 1.5rem 1.5rem;
