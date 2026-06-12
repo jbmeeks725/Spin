@@ -25,6 +25,27 @@ function setStatus(msg) {
   document.getElementById("statusMessage").textContent = msg;
 }
 
+function normalizeGenre(name) {
+  if (typeof name !== "string") return null;
+  const trimmed = name.trim();
+  if (!trimmed) return null;
+  if (trimmed.toUpperCase() === "R&B" || trimmed.toUpperCase() === "RB") {
+    return "R&B";
+  }
+  return trimmed
+    .split(/\s+/)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(" ");
+}
+
+function parseYearInput(value) {
+  if (value === "" || value === null || value === undefined) return null;
+  const n = Number(value);
+  if (Number.isNaN(n)) return null;
+  return Math.trunc(n);
+}
+
+
 function renderFilters() {
   const genreSelect = document.getElementById("genreFilter");
   const subgenreSelect = document.getElementById("subgenreFilter");
@@ -45,6 +66,24 @@ function renderFilters() {
     opt.value = sg.id;
     opt.textContent = sg.name;
     subgenreSelect.appendChild(opt);
+  });
+
+  // Populate datalists for the Add Record form
+  const genreOptions = document.getElementById("genreOptions");
+  const subgenreOptions = document.getElementById("subgenreOptions");
+  genreOptions.innerHTML = "";
+  subgenreOptions.innerHTML = "";
+
+  genres.forEach((g) => {
+    const opt = document.createElement("option");
+    opt.value = g.name;
+    genreOptions.appendChild(opt);
+  });
+
+  subgenres.forEach((sg) => {
+    const opt = document.createElement("option");
+    opt.value = sg.name;
+    subgenreOptions.appendChild(opt);
   });
 }
 
@@ -281,7 +320,167 @@ function buildRatingControls(record) {
 }
 
 
-async function loadData() {
+// ------------ Add Record ------------
+
+async function getOrCreateGenreId(genreNameRaw) {
+  const name = normalizeGenre(genreNameRaw);
+  if (!name) return null;
+
+  const existing = genres.find(
+    (g) => g.name.toLowerCase() === name.toLowerCase()
+  );
+  if (existing) return existing.id;
+
+  const { data, error } = await supabaseClient
+    .from("genres")
+    .insert({ name })
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  genres.push(data);
+  return data.id;
+}
+
+async function getOrCreateSubgenreId(subgenreNameRaw, genreId) {
+  const name = normalizeGenre(subgenreNameRaw);
+  if (!name) return null;
+
+  const existing = subgenres.find(
+    (sg) => sg.name.toLowerCase() === name.toLowerCase()
+  );
+  if (existing) return existing.id;
+
+  const { data, error } = await supabaseClient
+    .from("subgenres")
+    .insert({ name, genre_id: genreId })
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  subgenres.push(data);
+  return data.id;
+}
+
+function openAddRecordModal() {
+  document.getElementById("addRecordOverlay").hidden = false;
+  document.getElementById("addRecordStatus").textContent = "";
+  document.getElementById("fieldArtist").focus();
+}
+
+function closeAddRecordModal() {
+  document.getElementById("addRecordOverlay").hidden = true;
+}
+
+function resetAddRecordForm() {
+  document.getElementById("addRecordForm").reset();
+  document.getElementById("fieldQuantity").value = 1;
+  document.getElementById("addRecordStatus").textContent = "";
+}
+
+async function handleAddRecordSubmit(event) {
+  event.preventDefault();
+
+  const statusEl = document.getElementById("addRecordStatus");
+  const submitBtn = document.getElementById("submitAddRecordBtn");
+
+  const artist = document.getElementById("fieldArtist").value.trim();
+  const album = document.getElementById("fieldAlbum").value.trim();
+
+  if (!artist || !album) {
+    statusEl.textContent = "Artist and Album are required.";
+    statusEl.className = "form-status form-status-error";
+    return;
+  }
+
+  const yearVal = parseYearInput(document.getElementById("fieldYear").value);
+  const quantityVal = parseYearInput(document.getElementById("fieldQuantity").value) || 1;
+  const label = document.getElementById("fieldLabel").value.trim() || null;
+  const genreInput = document.getElementById("fieldGenre").value.trim();
+  const subgenreInput = document.getElementById("fieldSubgenre").value.trim();
+  const vinylGrade = document.getElementById("fieldVinylGrade").value.trim() || null;
+  const sleeveGrade = document.getElementById("fieldSleeveGrade").value.trim() || null;
+  const description = document.getElementById("fieldDescription").value.trim() || null;
+  const notes = document.getElementById("fieldNotes").value.trim() || null;
+
+  submitBtn.disabled = true;
+  statusEl.textContent = "Saving...";
+  statusEl.className = "form-status";
+
+  try {
+    const genreId = await getOrCreateGenreId(genreInput);
+    const subgenreId = subgenreInput
+      ? await getOrCreateSubgenreId(subgenreInput, genreId)
+      : null;
+
+    const newRecord = {
+      artist,
+      album,
+      year: yearVal,
+      year_raw: yearVal !== null ? String(yearVal) : null,
+      label,
+      genre_id: genreId,
+      subgenre_id: subgenreId,
+      description,
+      vinyl_grade: vinylGrade,
+      sleeve_grade: sleeveGrade,
+      notes,
+      quantity: quantityVal,
+    };
+
+    const { data, error } = await supabaseClient
+      .from("records")
+      .insert(newRecord)
+      .select(
+        `
+        id,
+        artist,
+        album,
+        year,
+        label,
+        genre_id,
+        subgenre_id,
+        cover_url,
+        rating,
+        genres ( name ),
+        subgenres ( name )
+      `
+      )
+      .single();
+
+    if (error) throw error;
+
+    const enriched = {
+      ...data,
+      genre_name: data.genres?.name ?? "",
+      subgenre_name: data.subgenres?.name ?? "",
+    };
+
+    allRecords.push(enriched);
+    allRecords.sort((a, b) => a.artist.localeCompare(b.artist));
+
+    renderFilters();
+    render();
+
+    statusEl.textContent = `Added "${album}" by ${artist}.`;
+    statusEl.className = "form-status form-status-success";
+
+    resetAddRecordForm();
+    setTimeout(() => {
+      closeAddRecordModal();
+    }, 900);
+  } catch (err) {
+    console.error(err);
+    statusEl.textContent = "Couldn't save this record. Check console for details.";
+    statusEl.className = "form-status form-status-error";
+  } finally {
+    submitBtn.disabled = false;
+  }
+}
+
+
   try {
     setStatus("Loading genres...");
     const { data: genreData, error: genreError } = await supabaseClient
@@ -362,6 +561,33 @@ function setupEvents() {
   document
     .getElementById("tableViewBtn")
     .addEventListener("click", () => setViewMode("table"));
+
+  document
+    .getElementById("addRecordBtn")
+    .addEventListener("click", () => openAddRecordModal());
+
+  document
+    .getElementById("closeAddRecordBtn")
+    .addEventListener("click", () => closeAddRecordModal());
+
+  document
+    .getElementById("cancelAddRecordBtn")
+    .addEventListener("click", () => {
+      resetAddRecordForm();
+      closeAddRecordModal();
+    });
+
+  document
+    .getElementById("addRecordForm")
+    .addEventListener("submit", handleAddRecordSubmit);
+
+  document
+    .getElementById("addRecordOverlay")
+    .addEventListener("click", (e) => {
+      if (e.target.id === "addRecordOverlay") {
+        closeAddRecordModal();
+      }
+    });
 }
 
 // 7. Initialize
