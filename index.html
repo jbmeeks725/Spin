@@ -34,6 +34,7 @@
       <button type="button" id="gridViewBtn" class="view-btn active" aria-pressed="true">Grid</button>
       <button type="button" id="tableViewBtn" class="view-btn" aria-pressed="false">Table</button>
     </div>
+    <button type="button" id="addRecordBtn" class="add-record-btn">+ Add Record</button>
   </section>
   <section id="status">
     <span id="statusMessage">Loading records…</span>
@@ -63,6 +64,99 @@
       </tbody>
     </table>
   </section>
+
+  <!-- Add Record modal -->
+  <div id="addRecordOverlay" class="modal-overlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="addRecordTitle">
+      <div class="modal-header">
+        <h2 id="addRecordTitle">Add a record</h2>
+        <button type="button" id="closeAddRecordBtn" class="modal-close" aria-label="Close">&times;</button>
+      </div>
+
+      <form id="addRecordForm">
+        <div class="form-row">
+          <label for="fieldArtist">Artist *</label>
+          <input type="text" id="fieldArtist" required />
+        </div>
+
+        <div class="form-row">
+          <label for="fieldAlbum">Album *</label>
+          <input type="text" id="fieldAlbum" required />
+        </div>
+
+        <div class="form-row form-row-split">
+          <div>
+            <label for="fieldYear">Year</label>
+            <input type="number" id="fieldYear" min="1900" max="2100" />
+          </div>
+          <div>
+            <label for="fieldQuantity">Quantity</label>
+            <input type="number" id="fieldQuantity" min="1" value="1" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label for="fieldLabel">Label</label>
+          <input type="text" id="fieldLabel" />
+        </div>
+
+        <div class="form-row form-row-split">
+          <div>
+            <label for="fieldGenre">Genre</label>
+            <input type="text" id="fieldGenre" list="genreOptions" placeholder="e.g. Jazz" />
+            <datalist id="genreOptions"></datalist>
+          </div>
+          <div>
+            <label for="fieldSubgenre">Subgenre</label>
+            <input type="text" id="fieldSubgenre" list="subgenreOptions" placeholder="e.g. Modal Jazz" />
+            <datalist id="subgenreOptions"></datalist>
+          </div>
+        </div>
+        <p class="field-hint">
+          Pick from the list or type a new one — new genres/subgenres will be created automatically.
+        </p>
+
+        <div class="form-row form-row-split">
+          <div>
+            <label for="fieldVinylGrade">Vinyl grade</label>
+            <input type="text" id="fieldVinylGrade" list="gradeOptions" placeholder="e.g. VG+" />
+          </div>
+          <div>
+            <label for="fieldSleeveGrade">Sleeve grade</label>
+            <input type="text" id="fieldSleeveGrade" list="gradeOptions" placeholder="e.g. VG+" />
+          </div>
+        </div>
+        <datalist id="gradeOptions">
+          <option value="M"></option>
+          <option value="NM"></option>
+          <option value="VG+"></option>
+          <option value="VG"></option>
+          <option value="VG-"></option>
+          <option value="G+"></option>
+          <option value="G"></option>
+          <option value="F"></option>
+          <option value="P"></option>
+        </datalist>
+
+        <div class="form-row">
+          <label for="fieldDescription">Description</label>
+          <textarea id="fieldDescription" rows="2"></textarea>
+        </div>
+
+        <div class="form-row">
+          <label for="fieldNotes">Notes</label>
+          <textarea id="fieldNotes" rows="2"></textarea>
+        </div>
+
+        <div id="addRecordStatus" class="form-status"></div>
+
+        <div class="form-actions">
+          <button type="button" id="cancelAddRecordBtn" class="btn-secondary">Cancel</button>
+          <button type="submit" id="submitAddRecordBtn" class="btn-primary">Add record</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <!-- Supabase JS (client-side) -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
