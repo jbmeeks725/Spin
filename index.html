@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Spin — Vinyl Collection</title>
+  <title>Spin - Keeping Better Record of Your Records</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="style.css" />
 
@@ -17,10 +17,17 @@
   <header>
     <div class="brand">
       <img src="icon-192.png" alt="" class="brand-logo" />
-      <h1>Spin</h1>
+      <div>
+        <h1>Spin</h1>
+        <p class="tagline">Keeping better record of your records</p>
+      </div>
     </div>
   </header>
   <section id="controls">
+    <nav id="pageNav" role="group" aria-label="Page">
+      <button type="button" id="collectionPageBtn" class="view-btn active" aria-pressed="true">My Collection</button>
+      <button type="button" id="wishlistPageBtn" class="view-btn" aria-pressed="false">My Wishlist</button>
+    </nav>
     <div id="collectionFilters">
       <input
         type="text"
@@ -42,16 +49,46 @@
         <option value="unrated">Unrated</option>
       </select>
     </div>
-    <div id="viewToggle" role="group" aria-label="View mode">
-      <button type="button" id="gridViewBtn" class="view-btn active" aria-pressed="true">Grid</button>
-      <button type="button" id="tableViewBtn" class="view-btn" aria-pressed="false">Table</button>
-      <button type="button" id="wishlistViewBtn" class="view-btn" aria-pressed="false">Wishlist</button>
+    <div id="gridDensityControl">
+      <label for="gridColsSelect">Per row</label>
+      <select id="gridColsSelect">
+        <option value="auto">Auto</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+        <option value="5">5</option>
+        <option value="6">6</option>
+        <option value="8">8</option>
+        <option value="10">10</option>
+      </select>
     </div>
     <button type="button" id="addRecordBtn" class="add-record-btn">+ Add Record</button>
     <button type="button" id="addWishlistBtn" class="add-record-btn" hidden>+ Add to Wishlist</button>
   </section>
   <section id="status">
     <span id="statusMessage">Loading records…</span>
+  </section>
+
+  <section id="atAGlanceSection">
+    <h2>My Collection — At a Glance</h2>
+    <div id="chartFilterChip" class="chart-filter-chip" hidden>
+      <span id="chartFilterLabel"></span>
+      <button type="button" id="clearChartFilterBtn">Clear filter ✕</button>
+    </div>
+    <div class="charts-grid">
+      <div class="chart-card">
+        <h3>By Genre</h3>
+        <div class="chart-canvas-wrap"><canvas id="genreChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>Top Artists</h3>
+        <div class="chart-canvas-wrap"><canvas id="artistChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>By Decade</h3>
+        <div class="chart-canvas-wrap"><canvas id="decadeChart"></canvas></div>
+      </div>
+    </div>
+    <p class="field-hint">Click a bar to filter your collection below.</p>
   </section>
 
   <section id="cardSection">
@@ -64,25 +101,6 @@
     <div id="wishlistGrid">
       <!-- wishlist cards injected here -->
     </div>
-  </section>
-
-  <section id="tableSection" hidden>
-    <table id="recordsTable">
-      <thead>
-        <tr>
-          <th>Artist</th>
-          <th>Album</th>
-          <th>Year</th>
-          <th>Genre</th>
-          <th>Subgenre</th>
-          <th>Label</th>
-          <th>Rating</th>
-        </tr>
-      </thead>
-      <tbody id="recordsBody">
-        <!-- rows will be injected here -->
-      </tbody>
-    </table>
   </section>
 
   <!-- Add Record modal -->
@@ -350,6 +368,9 @@
 
   <!-- Barcode scanning -->
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+  <!-- Charts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <!-- Supabase JS (client-side) -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>

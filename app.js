@@ -14,9 +14,14 @@ let allRecords = [];
 let wishlist = [];
 let genres = [];
 let subgenres = [];
-let viewMode = "grid"; // "grid" | "table" | "wishlist"
+let currentPage = "collection"; // "collection" | "wishlist"
 let pendingWishlistCoverUrl = null;
 let pendingWishlistDiscogsId = null;
+let artistFilter = null;
+let yearFilter = null; // { start, end }
+let genreChart = null;
+let artistChart = null;
+let decadeChart = null;
 
 const RATING_OPTIONS = [
   { value: "love", label: "Love" },
@@ -63,11 +68,9 @@ function subgenreNameById(id) {
 
 function renderFilters() {
   const genreSelect = document.getElementById("genreFilter");
-  const subgenreSelect = document.getElementById("subgenreFilter");
 
   // Clear current options except first
   genreSelect.length = 1;
-  subgenreSelect.length = 1;
 
   genres.forEach((g) => {
     const opt = document.createElement("option");
@@ -76,12 +79,7 @@ function renderFilters() {
     genreSelect.appendChild(opt);
   });
 
-  subgenres.forEach((sg) => {
-    const opt = document.createElement("option");
-    opt.value = sg.id;
-    opt.textContent = sg.name;
-    subgenreSelect.appendChild(opt);
-  });
+  populateSubgenreFilterOptions();
 
   // Populate datalists for the Add Record form
   const genreOptions = document.getElementById("genreOptions");
@@ -100,6 +98,33 @@ function renderFilters() {
     opt.value = sg.name;
     subgenreOptions.appendChild(opt);
   });
+}
+
+function populateSubgenreFilterOptions() {
+  const genreSelect = document.getElementById("genreFilter");
+  const subgenreSelect = document.getElementById("subgenreFilter");
+
+  const selectedGenreId = genreSelect.value ? Number(genreSelect.value) : null;
+  const previousValue = subgenreSelect.value;
+
+  subgenreSelect.length = 1;
+
+  const relevant = selectedGenreId
+    ? subgenres.filter((sg) => sg.genre_id === selectedGenreId)
+    : subgenres;
+
+  relevant.forEach((sg) => {
+    const opt = document.createElement("option");
+    opt.value = sg.id;
+    opt.textContent = sg.name;
+    subgenreSelect.appendChild(opt);
+  });
+
+  if (relevant.some((sg) => String(sg.id) === previousValue)) {
+    subgenreSelect.value = previousValue;
+  } else {
+    subgenreSelect.value = "";
+  }
 }
 
 function getFilteredRecords() {
@@ -141,55 +166,30 @@ function getFilteredRecords() {
     }
   }
 
+  if (artistFilter) {
+    filtered = filtered.filter((r) => r.artist === artistFilter);
+  }
+
+  if (yearFilter) {
+    filtered = filtered.filter(
+      (r) => r.year && r.year >= yearFilter.start && r.year <= yearFilter.end
+    );
+  }
+
   return filtered;
-}
-
-function renderTable(filtered) {
-  const tbody = document.getElementById("recordsBody");
-  tbody.innerHTML = "";
-
-  filtered.forEach((r) => {
-    const tr = document.createElement("tr");
-
-    const tdArtist = document.createElement("td");
-    tdArtist.textContent = r.artist;
-
-    const tdAlbum = document.createElement("td");
-    tdAlbum.textContent = r.album;
-
-    const tdYear = document.createElement("td");
-    tdYear.textContent = r.year ?? "";
-
-    const tdGenre = document.createElement("td");
-    tdGenre.textContent = r.genre_name || "";
-
-    const tdSubgenre = document.createElement("td");
-    tdSubgenre.textContent = r.subgenre_name || "";
-
-    const tdLabel = document.createElement("td");
-    tdLabel.textContent = r.label || "";
-
-    const tdRating = document.createElement("td");
-    tdRating.appendChild(buildRatingControls(r));
-
-    tr.appendChild(tdArtist);
-    tr.appendChild(tdAlbum);
-    tr.appendChild(tdYear);
-    tr.appendChild(tdGenre);
-    tr.appendChild(tdSubgenre);
-    tr.appendChild(tdLabel);
-    tr.appendChild(tdRating);
-
-    tr.classList.add("clickable-row");
-    tr.addEventListener("click", () => openRecordDetailModal(r.id));
-
-    tbody.appendChild(tr);
-  });
 }
 
 function renderCards(filtered) {
   const grid = document.getElementById("cardGrid");
   grid.innerHTML = "";
+
+  if (filtered.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "field-hint";
+    empty.textContent = "No records match your current filters.";
+    grid.appendChild(empty);
+    return;
+  }
 
   filtered.forEach((r) => {
     const card = document.createElement("div");
@@ -250,60 +250,215 @@ function renderCards(filtered) {
   });
 }
 
+// ------------ At a Glance charts ------------
+
+function computeGenreCounts() {
+  const counts = {};
+  allRecords.forEach((r) => {
+    const name = r.genre_name || "Unspecified";
+    counts[name] = (counts[name] || 0) + 1;
+  });
+  return Object.entries(counts).sort((a, b) => b[1] - a[1]);
+}
+
+function computeArtistCounts() {
+  const counts = {};
+  allRecords.forEach((r) => {
+    counts[r.artist] = (counts[r.artist] || 0) + 1;
+  });
+  return Object.entries(counts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10);
+}
+
+function computeDecadeCounts() {
+  const counts = {};
+  allRecords.forEach((r) => {
+    if (!r.year) return;
+    const decade = Math.floor(r.year / 10) * 10;
+    counts[decade] = (counts[decade] || 0) + 1;
+  });
+  return Object.entries(counts)
+    .map(([d, c]) => [Number(d), c])
+    .sort((a, b) => a[0] - b[0]);
+}
+
+function upsertBarChart(instance, canvasId, labels, data, onBarClick) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas || typeof Chart === "undefined") return instance;
+
+  if (instance) {
+    instance.data.labels = labels;
+    instance.data.datasets[0].data = data;
+    instance.update();
+    return instance;
+  }
+
+  return new Chart(canvas, {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [
+        {
+          data,
+          backgroundColor: "#caa15a",
+          borderRadius: 4,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: {
+          ticks: { color: "#9ca3af", autoSkip: true, maxRotation: 45, minRotation: 0 },
+          grid: { display: false },
+        },
+        y: {
+          ticks: { color: "#9ca3af", precision: 0 },
+          grid: { color: "#1f2937" },
+          beginAtZero: true,
+        },
+      },
+      onClick: (evt, elements, chart) => {
+        if (!elements.length) return;
+        const idx = elements[0].index;
+        const label = chart.data.labels[idx];
+        onBarClick(label);
+      },
+    },
+  });
+}
+
+function updateChartFilterChip() {
+  const chip = document.getElementById("chartFilterChip");
+  const label = document.getElementById("chartFilterLabel");
+
+  if (artistFilter) {
+    label.textContent = `Artist: ${artistFilter}`;
+    chip.hidden = false;
+  } else if (yearFilter) {
+    label.textContent = `Decade: ${yearFilter.start}s`;
+    chip.hidden = false;
+  } else {
+    chip.hidden = true;
+  }
+}
+
+function renderCharts() {
+  if (typeof Chart === "undefined") return;
+
+  const genreData = computeGenreCounts();
+  const artistData = computeArtistCounts();
+  const decadeData = computeDecadeCounts();
+
+  genreChart = upsertBarChart(
+    genreChart,
+    "genreChart",
+    genreData.map(([k]) => k),
+    genreData.map(([, v]) => v),
+    (label) => {
+      const g = genres.find((g) => g.name === label);
+      if (!g) return;
+      document.getElementById("genreFilter").value = String(g.id);
+      populateSubgenreFilterOptions();
+      render();
+    }
+  );
+
+  artistChart = upsertBarChart(
+    artistChart,
+    "artistChart",
+    artistData.map(([k]) => k),
+    artistData.map(([, v]) => v),
+    (label) => {
+      artistFilter = artistFilter === label ? null : label;
+      yearFilter = null;
+      updateChartFilterChip();
+      render();
+    }
+  );
+
+  decadeChart = upsertBarChart(
+    decadeChart,
+    "decadeChart",
+    decadeData.map(([d]) => `${d}s`),
+    decadeData.map(([, v]) => v),
+    (label) => {
+      const start = Number(label.replace("s", ""));
+      if (yearFilter && yearFilter.start === start) {
+        yearFilter = null;
+      } else {
+        yearFilter = { start, end: start + 9 };
+      }
+      artistFilter = null;
+      updateChartFilterChip();
+      render();
+    }
+  );
+}
+
+// ------------ Render / page switching ------------
+
 function render() {
-  if (viewMode === "wishlist") {
+  if (currentPage === "wishlist") {
     renderWishlist();
     setStatus(`${wishlist.length} item${wishlist.length === 1 ? "" : "s"} on your wishlist`);
     return;
   }
 
   const filtered = getFilteredRecords();
-
-  if (viewMode === "grid") {
-    renderCards(filtered);
-  } else {
-    renderTable(filtered);
-  }
+  renderCards(filtered);
+  renderCharts();
 
   setStatus(`Showing ${filtered.length} of ${allRecords.length} records`);
 }
 
-function setViewMode(mode) {
-  viewMode = mode;
+function setPage(page) {
+  currentPage = page;
 
-  const gridBtn = document.getElementById("gridViewBtn");
-  const tableBtn = document.getElementById("tableViewBtn");
-  const wishlistBtn = document.getElementById("wishlistViewBtn");
+  const collectionBtn = document.getElementById("collectionPageBtn");
+  const wishlistBtn = document.getElementById("wishlistPageBtn");
+  const atAGlanceSection = document.getElementById("atAGlanceSection");
   const cardSection = document.getElementById("cardSection");
-  const tableSection = document.getElementById("tableSection");
   const wishlistSection = document.getElementById("wishlistSection");
   const filterControls = document.getElementById("collectionFilters");
 
-  const buttons = [
-    { btn: gridBtn, mode: "grid" },
-    { btn: tableBtn, mode: "table" },
-    { btn: wishlistBtn, mode: "wishlist" },
-  ];
+  const isCollection = page === "collection";
 
-  buttons.forEach(({ btn, mode: btnMode }) => {
-    if (btnMode === mode) {
-      btn.classList.add("active");
-      btn.setAttribute("aria-pressed", "true");
-    } else {
-      btn.classList.remove("active");
-      btn.setAttribute("aria-pressed", "false");
-    }
-  });
+  collectionBtn.classList.toggle("active", isCollection);
+  collectionBtn.setAttribute("aria-pressed", String(isCollection));
+  wishlistBtn.classList.toggle("active", !isCollection);
+  wishlistBtn.setAttribute("aria-pressed", String(!isCollection));
 
-  cardSection.hidden = mode !== "grid";
-  tableSection.hidden = mode !== "table";
-  wishlistSection.hidden = mode !== "wishlist";
-  filterControls.hidden = mode === "wishlist";
+  atAGlanceSection.hidden = !isCollection;
+  cardSection.hidden = !isCollection;
+  wishlistSection.hidden = isCollection;
+  filterControls.hidden = !isCollection;
 
-  document.getElementById("addRecordBtn").hidden = mode === "wishlist";
-  document.getElementById("addWishlistBtn").hidden = mode !== "wishlist";
+  document.getElementById("addRecordBtn").hidden = !isCollection;
+  document.getElementById("addWishlistBtn").hidden = isCollection;
 
   render();
+}
+
+// ------------ Grid density ------------
+
+function applyGridCols(value) {
+  const root = document.documentElement.style;
+  if (value === "auto") {
+    root.setProperty("--grid-cols", "auto-fill");
+    root.setProperty("--grid-min", "150px");
+  } else {
+    root.setProperty("--grid-cols", value);
+    root.setProperty("--grid-min", "0px");
+  }
+  try {
+    localStorage.setItem("spin-grid-cols", value);
+  } catch {
+    // ignore storage errors (e.g. private browsing)
+  }
 }
 
 async function updateRating(recordId, newRating) {
@@ -1471,7 +1626,10 @@ function setupEvents() {
 
   document
     .getElementById("genreFilter")
-    .addEventListener("change", () => render());
+    .addEventListener("change", () => {
+      populateSubgenreFilterOptions();
+      render();
+    });
 
   document
     .getElementById("subgenreFilter")
@@ -1482,16 +1640,32 @@ function setupEvents() {
     .addEventListener("change", () => render());
 
   document
-    .getElementById("gridViewBtn")
-    .addEventListener("click", () => setViewMode("grid"));
+    .getElementById("collectionPageBtn")
+    .addEventListener("click", () => setPage("collection"));
 
   document
-    .getElementById("tableViewBtn")
-    .addEventListener("click", () => setViewMode("table"));
+    .getElementById("wishlistPageBtn")
+    .addEventListener("click", () => setPage("wishlist"));
 
   document
-    .getElementById("wishlistViewBtn")
-    .addEventListener("click", () => setViewMode("wishlist"));
+    .getElementById("clearChartFilterBtn")
+    .addEventListener("click", () => {
+      artistFilter = null;
+      yearFilter = null;
+      updateChartFilterChip();
+      render();
+    });
+
+  const gridColsSelect = document.getElementById("gridColsSelect");
+  let savedCols = "auto";
+  try {
+    savedCols = localStorage.getItem("spin-grid-cols") || "auto";
+  } catch {
+    // ignore storage errors
+  }
+  gridColsSelect.value = savedCols;
+  applyGridCols(savedCols);
+  gridColsSelect.addEventListener("change", (e) => applyGridCols(e.target.value));
 
   document
     .getElementById("addWishlistBtn")
