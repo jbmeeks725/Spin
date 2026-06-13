@@ -3057,7 +3057,127 @@ function setupEvents() {
     });
 }
 
-// ------------ Splash screen ------------
+// ------------ Auth ------------
+
+let currentUser = null;
+let authMode = "signin"; // "signin" | "signup"
+
+function showAuthOverlay(show) {
+  const overlay = document.getElementById("authOverlay");
+  overlay.hidden = !show;
+}
+
+function setAuthMode(mode) {
+  authMode = mode;
+  const title = document.getElementById("authTitle");
+  const submitBtn = document.getElementById("authSubmitBtn");
+  const toggleLabel = document.getElementById("authToggleLabel");
+  const toggleBtn = document.getElementById("authToggleBtn");
+  const statusEl = document.getElementById("authStatus");
+
+  statusEl.textContent = "";
+  statusEl.className = "form-status";
+
+  if (mode === "signup") {
+    title.textContent = "Create your Spin Vinyl account";
+    submitBtn.textContent = "Create account";
+    toggleLabel.textContent = "Already have an account?";
+    toggleBtn.textContent = "Sign in";
+  } else {
+    title.textContent = "Sign in to Spin Vinyl";
+    submitBtn.textContent = "Sign in";
+    toggleLabel.textContent = "Don't have an account?";
+    toggleBtn.textContent = "Create one";
+  }
+}
+
+async function handleAuthSubmit(event) {
+  event.preventDefault();
+
+  const email = document.getElementById("authEmail").value.trim();
+  const password = document.getElementById("authPassword").value;
+  const submitBtn = document.getElementById("authSubmitBtn");
+  const statusEl = document.getElementById("authStatus");
+
+  submitBtn.disabled = true;
+  statusEl.textContent = authMode === "signup" ? "Creating account..." : "Signing in...";
+  statusEl.className = "form-status";
+
+  try {
+    if (authMode === "signup") {
+      const { data, error } = await supabaseClient.auth.signUp({ email, password });
+      if (error) throw error;
+
+      if (data.session) {
+        // Email confirmation not required - signed in immediately
+        statusEl.textContent = "Account created!";
+        statusEl.className = "form-status form-status-success";
+      } else {
+        statusEl.textContent = "Check your email to confirm your account, then sign in.";
+        statusEl.className = "form-status form-status-success";
+        setAuthMode("signin");
+      }
+    } else {
+      const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      statusEl.textContent = "";
+    }
+  } catch (err) {
+    console.error(err);
+    statusEl.textContent = err.message || "Something went wrong. Please try again.";
+    statusEl.className = "form-status form-status-error";
+  } finally {
+    submitBtn.disabled = false;
+  }
+}
+
+async function handleSignOut() {
+  try {
+    const { error } = await supabaseClient.auth.signOut();
+    if (error) throw error;
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+function onSignedIn(user) {
+  currentUser = user;
+
+  document.getElementById("accountEmail").textContent = user.email || "";
+  document.getElementById("accountSection").hidden = false;
+  showAuthOverlay(false);
+
+  loadData();
+}
+
+function onSignedOut() {
+  currentUser = null;
+
+  document.getElementById("accountSection").hidden = true;
+  document.getElementById("authForm").reset();
+  setAuthMode("signin");
+  showAuthOverlay(true);
+}
+
+function setupAuth() {
+  document.getElementById("authForm").addEventListener("submit", handleAuthSubmit);
+
+  document.getElementById("authToggleBtn").addEventListener("click", () => {
+    setAuthMode(authMode === "signup" ? "signin" : "signup");
+  });
+
+  document.getElementById("signOutBtn").addEventListener("click", () => handleSignOut());
+
+  supabaseClient.auth.onAuthStateChange((event, session) => {
+    if (session?.user) {
+      onSignedIn(session.user);
+    } else {
+      onSignedOut();
+    }
+  });
+}
+
+
 
 function setupSplashScreen() {
   const splash = document.getElementById("splashScreen");
@@ -3090,5 +3210,5 @@ function setupSplashScreen() {
 document.addEventListener("DOMContentLoaded", () => {
   setupSplashScreen();
   setupEvents();
-  loadData();
+  setupAuth();
 });
