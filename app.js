@@ -805,7 +805,7 @@ async function addRecommendationToWishlist(artist, album, btn) {
         label: null,
         genre_id: null,
         subgenre_id: null,
-        notes: "Suggested by Spin",
+        notes: "Suggested by Spin Vinyl",
         cover_url: null,
         discogs_release_id: null,
       })
