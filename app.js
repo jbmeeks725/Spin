@@ -2980,8 +2980,38 @@ function setupEvents() {
     });
 }
 
+// ------------ Splash screen ------------
+
+function setupSplashScreen() {
+  const splash = document.getElementById("splashScreen");
+  if (!splash) return;
+
+  let dismissed = false;
+
+  const dismiss = (skip) => {
+    if (dismissed) return;
+    dismissed = true;
+    if (skip) {
+      splash.classList.add("splash-skip");
+    }
+  };
+
+  splash.addEventListener("click", () => dismiss(true));
+  splash.addEventListener("animationend", (e) => {
+    if (e.target === splash) {
+      splash.hidden = true;
+    }
+  });
+
+  // Safety net in case the animationend event doesn't fire for some reason
+  setTimeout(() => {
+    splash.hidden = true;
+  }, 4000);
+}
+
 // 7. Initialize
 document.addEventListener("DOMContentLoaded", () => {
+  setupSplashScreen();
   setupEvents();
   loadData();
 });
