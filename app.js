@@ -137,7 +137,22 @@ function renderFilters() {
     genreOptions.appendChild(opt);
   });
 
-  subgenres.forEach((sg) => {
+  populateSubgenreOptionsForGenre(null);
+}
+
+function populateSubgenreOptionsForGenre(genreInputValue) {
+  const subgenreOptions = document.getElementById("subgenreOptions");
+  subgenreOptions.innerHTML = "";
+
+  const matchedGenre = genreInputValue
+    ? genres.find((g) => g.name.toLowerCase() === genreInputValue.trim().toLowerCase())
+    : null;
+
+  const relevant = matchedGenre
+    ? subgenres.filter((sg) => sg.genre_id === matchedGenre.id)
+    : subgenres;
+
+  relevant.forEach((sg) => {
     const opt = document.createElement("option");
     opt.value = sg.name;
     subgenreOptions.appendChild(opt);
@@ -1414,6 +1429,7 @@ const ADD_RECORD_SCAN_CONFIG = {
     if (result.label) document.getElementById("fieldLabel").value = result.label;
     if (result.genre) document.getElementById("fieldGenre").value = result.genre;
     if (result.style) document.getElementById("fieldSubgenre").value = result.style;
+    if (result.genre) populateSubgenreOptionsForGenre(result.genre);
     if (result.cover_url) pendingScannedCoverUrl = result.cover_url;
   },
 };
@@ -1431,6 +1447,7 @@ const ADD_WISHLIST_SCAN_CONFIG = {
     if (result.label) document.getElementById("wishLabel").value = result.label;
     if (result.genre) document.getElementById("wishGenre").value = result.genre;
     if (result.style) document.getElementById("wishSubgenre").value = result.style;
+    if (result.genre) populateSubgenreOptionsForGenre(result.genre);
     if (result.discogs_release_id) pendingWishlistDiscogsId = result.discogs_release_id;
     if (result.cover_url) pendingWishlistCoverUrl = result.cover_url;
   },
@@ -1486,6 +1503,7 @@ function openAddRecordModal() {
   document.getElementById("scanStatus").textContent = "";
   document.getElementById("scanStatus").className = "form-status";
   pendingScannedCoverUrl = null;
+  populateSubgenreOptionsForGenre(document.getElementById("fieldGenre").value);
   document.getElementById("fieldArtist").focus();
 }
 
@@ -1501,6 +1519,7 @@ function resetAddRecordForm() {
   document.getElementById("scanStatus").textContent = "";
   document.getElementById("scanStatus").className = "form-status";
   pendingScannedCoverUrl = null;
+  populateSubgenreOptionsForGenre(null);
 }
 
 async function handleAddRecordSubmit(event) {
@@ -1938,6 +1957,7 @@ function openAddWishlistModal() {
   document.getElementById("wishScanStatus").className = "form-status";
   pendingWishlistCoverUrl = null;
   pendingWishlistDiscogsId = null;
+  populateSubgenreOptionsForGenre(document.getElementById("wishGenre").value);
   document.getElementById("wishArtist").focus();
 }
 
@@ -1953,6 +1973,7 @@ function resetAddWishlistForm() {
   document.getElementById("wishScanStatus").className = "form-status";
   pendingWishlistCoverUrl = null;
   pendingWishlistDiscogsId = null;
+  populateSubgenreOptionsForGenre(null);
 }
 
 async function handleAddWishlistSubmit(event) {
@@ -2563,6 +2584,7 @@ function openRecordDetailModal(recordId) {
   document.getElementById("detailLabel").value = record.label || "";
   document.getElementById("detailGenre").value = record.genre_name || "";
   document.getElementById("detailSubgenre").value = record.subgenre_name || "";
+  populateSubgenreOptionsForGenre(record.genre_name || "");
   document.getElementById("detailVinylGrade").value = record.vinyl_grade || "";
   document.getElementById("detailSleeveGrade").value = record.sleeve_grade || "";
   document.getElementById("detailDescription").value = record.description || "";
@@ -2812,6 +2834,17 @@ function setupEvents() {
   document
     .getElementById("searchInput")
     .addEventListener("input", () => render());
+
+  // Make the subgenre suggestions in Add Record / Add Wishlist / Edit forms
+  // depend on whatever genre name has been typed in that same form.
+  ["fieldGenre", "wishGenre", "detailGenre"].forEach((id) => {
+    document.getElementById(id).addEventListener("input", (e) => {
+      populateSubgenreOptionsForGenre(e.target.value);
+    });
+    document.getElementById(id).addEventListener("focus", (e) => {
+      populateSubgenreOptionsForGenre(e.target.value);
+    });
+  });
 
   document
     .getElementById("genreFilter")
