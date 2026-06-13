@@ -1280,10 +1280,25 @@ h1 {
   flex-grow: 1;
 }
 
-.recommendation-card .btn-secondary {
+.recommendation-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.recommendation-actions .btn-secondary {
   align-self: flex-start;
   font-size: 0.75rem;
   padding: 0.25rem 0.5rem;
+}
+
+.recommendation-song-wrap:not(:empty) {
+  margin-top: 0.2rem;
+}
+
+.recommendation-song-link {
+  font-size: 0.75rem;
+  padding: 0.3rem 0.6rem;
 }
 
 @media (max-width: 640px) {

@@ -453,42 +453,50 @@ function renderSpotlight() {
   wikiWrap.appendChild(wikiBtn);
 }
 
+async function fetchNotableSong(artist, album) {
+  const response = await fetch(RECOMMENDATIONS_FUNCTION_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+    },
+    body: JSON.stringify({ mode: "song", artist, album }),
+  });
+
+  const result = await response.json();
+  console.log("Notable song lookup debug:", result);
+
+  if (!response.ok) {
+    throw new Error(result.error || `Request failed (${response.status})`);
+  }
+
+  if (!result.song) {
+    throw new Error("No song returned");
+  }
+
+  return result.song;
+}
+
+function buildSongLink(artist, song, className = "spotlight-song-link") {
+  const link = document.createElement("a");
+  link.href = `https://www.youtube.com/results?search_query=${encodeURIComponent(`${artist} ${song} official`)}`;
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+  link.className = className;
+  link.textContent = `\u25B6 "${song}" on YouTube`;
+  link.addEventListener("click", (e) => e.stopPropagation());
+  return link;
+}
+
 async function findSpotlightSong(record, wrap, btn) {
   btn.disabled = true;
   btn.textContent = "Looking up...";
 
   try {
-    const response = await fetch(RECOMMENDATIONS_FUNCTION_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        apikey: SUPABASE_ANON_KEY,
-        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-      },
-      body: JSON.stringify({ mode: "song", artist: record.artist, album: record.album }),
-    });
-
-    const result = await response.json();
-    console.log("Spotlight song lookup debug:", result);
-
-    if (!response.ok) {
-      throw new Error(result.error || `Request failed (${response.status})`);
-    }
-
-    if (!result.song) {
-      throw new Error("No song returned");
-    }
-
+    const song = await fetchNotableSong(record.artist, record.album);
     wrap.innerHTML = "";
-
-    const link = document.createElement("a");
-    link.href = `https://www.youtube.com/results?search_query=${encodeURIComponent(`${record.artist} ${result.song} official`)}`;
-    link.target = "_blank";
-    link.rel = "noopener noreferrer";
-    link.className = "spotlight-song-link";
-    link.textContent = `\u25B6 "${result.song}" on YouTube`;
-    link.addEventListener("click", (e) => e.stopPropagation());
-    wrap.appendChild(link);
+    wrap.appendChild(buildSongLink(record.artist, song));
   } catch (err) {
     console.error(err);
     btn.disabled = false;
@@ -770,16 +778,33 @@ async function handleGetRecommendations() {
       reasonEl.className = "recommendation-reason";
       reasonEl.textContent = s.reason || "";
 
+      const actions = document.createElement("div");
+      actions.className = "recommendation-actions";
+
       const addBtn = document.createElement("button");
       addBtn.type = "button";
       addBtn.className = "btn-secondary";
       addBtn.textContent = "Add to Wishlist";
       addBtn.addEventListener("click", () => addRecommendationToWishlist(s.artist, s.album, addBtn));
 
+      const songBtn = document.createElement("button");
+      songBtn.type = "button";
+      songBtn.className = "btn-secondary";
+      songBtn.textContent = "Find a notable track";
+
+      const songWrap = document.createElement("div");
+      songWrap.className = "recommendation-song-wrap";
+
+      songBtn.addEventListener("click", () => findRecommendationSong(s, songWrap, songBtn));
+
+      actions.appendChild(addBtn);
+      actions.appendChild(songBtn);
+
       card.appendChild(artistEl);
       card.appendChild(albumEl);
       card.appendChild(reasonEl);
-      card.appendChild(addBtn);
+      card.appendChild(actions);
+      card.appendChild(songWrap);
       list.appendChild(card);
     });
   } catch (err) {
@@ -788,6 +813,25 @@ async function handleGetRecommendations() {
     statusEl.className = "form-status form-status-error";
   } finally {
     btn.disabled = false;
+  }
+}
+
+async function findRecommendationSong(suggestion, wrap, btn) {
+  btn.disabled = true;
+  btn.textContent = "Looking up...";
+
+  try {
+    const song = await fetchNotableSong(suggestion.artist, suggestion.album);
+    wrap.innerHTML = "";
+    wrap.appendChild(buildSongLink(suggestion.artist, song, "spotlight-song-link recommendation-song-link"));
+  } catch (err) {
+    console.error(err);
+    btn.disabled = false;
+    btn.textContent = "Find a notable track";
+    const errEl = document.createElement("p");
+    errEl.className = "spotlight-error";
+    errEl.textContent = `Couldn't find a track suggestion (${err.message || err}).`;
+    wrap.appendChild(errEl);
   }
 }
 
