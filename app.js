@@ -410,12 +410,12 @@ function renderSpotlight() {
   if (record.year) metaParts.push(record.year);
   if (record.genre_name) metaParts.push(record.genre_name);
   if (record.subgenre_name) metaParts.push(record.subgenre_name);
-  if (record.rating) metaParts.push(RATING_LABELS[record.rating] || record.rating);
   metaEl.textContent = metaParts.join(" · ");
 
   info.appendChild(artistEl);
   info.appendChild(albumEl);
   if (metaParts.length) info.appendChild(metaEl);
+  info.appendChild(buildRatingControls(record));
 
   if (record.description) {
     const descEl = document.createElement("div");
@@ -469,6 +469,7 @@ async function findSpotlightSong(record, wrap, btn) {
     });
 
     const result = await response.json();
+    console.log("Spotlight song lookup debug:", result);
 
     if (!response.ok) {
       throw new Error(result.error || `Request failed (${response.status})`);
