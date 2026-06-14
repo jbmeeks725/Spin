@@ -3599,15 +3599,15 @@ let currentUser = null;
 let currentProfile = null;
 
 const AVATAR_PRESETS = [
-  { id: "record", file: "avatars/avatar-record.png", label: "Vinyl record" },
-  { id: "acoustic-guitar", file: "avatars/avatar-acoustic-guitar.png", label: "Acoustic guitar" },
-  { id: "electric-guitar", file: "avatars/avatar-electric-guitar.png", label: "Electric guitar" },
-  { id: "drums", file: "avatars/avatar-drums.png", label: "Drums" },
-  { id: "piano", file: "avatars/avatar-piano.png", label: "Piano" },
-  { id: "saxophone", file: "avatars/avatar-saxophone.png", label: "Saxophone" },
-  { id: "trumpet", file: "avatars/avatar-trumpet.png", label: "Trumpet" },
-  { id: "violin", file: "avatars/avatar-violin.png", label: "Violin" },
-  { id: "notes", file: "avatars/avatar-notes.png", label: "Music notes" },
+  { id: "record", file: "record.png", label: "Vinyl record" },
+  { id: "acoustic-guitar", file: "acoustic_guitar.png", label: "Acoustic guitar" },
+  { id: "electric-guitar", file: "electric_guitar.png", label: "Electric guitar" },
+  { id: "drums", file: "drums.png", label: "Drums" },
+  { id: "piano", file: "piano.png", label: "Piano" },
+  { id: "saxophone", file: "saxophone.png", label: "Saxophone" },
+  { id: "trumpet", file: "trumpet.png", label: "Trumpet" },
+  { id: "violin", file: "violin.png", label: "Violin" },
+  { id: "notes", file: "notes.png", label: "Music notes" },
 ];
 let authMode = "signin"; // "signin" | "signup"
 
