@@ -695,6 +695,30 @@ function renderHome() {
   renderWishlistHighlights();
 }
 
+function resetSessionUiState() {
+  // Clear any transient UI left over from a previous account/session
+  spotlightRecordId = null;
+  artistFilter = null;
+  yearFilter = null;
+
+  const recommendationsList = document.getElementById("recommendationsList");
+  const recommendationsStatus = document.getElementById("recommendationsStatus");
+  if (recommendationsList) recommendationsList.innerHTML = "";
+  if (recommendationsStatus) {
+    recommendationsStatus.textContent = "";
+    recommendationsStatus.className = "form-status";
+  }
+
+  const searchInput = document.getElementById("searchInput");
+  const genreFilter = document.getElementById("genreFilter");
+  const subgenreFilter = document.getElementById("subgenreFilter");
+  const ratingFilter = document.getElementById("ratingFilter");
+  if (searchInput) searchInput.value = "";
+  if (genreFilter) genreFilter.value = "";
+  if (subgenreFilter) subgenreFilter.value = "";
+  if (ratingFilter) ratingFilter.value = "";
+}
+
 function goToChart(canvasId) {
   setPage("collection");
   requestAnimationFrame(() => {
@@ -3067,6 +3091,15 @@ function showAuthOverlay(show) {
   overlay.hidden = !show;
 }
 
+function resetPasswordVisibility() {
+  const input = document.getElementById("authPassword");
+  const btn = document.getElementById("authPasswordToggle");
+  input.type = "password";
+  btn.setAttribute("aria-pressed", "false");
+  btn.setAttribute("aria-label", "Show password");
+  btn.innerHTML = '<i class="ti ti-eye" aria-hidden="true"></i>';
+}
+
 function setAuthMode(mode) {
   authMode = mode;
   const title = document.getElementById("authTitle");
@@ -3077,6 +3110,7 @@ function setAuthMode(mode) {
 
   statusEl.textContent = "";
   statusEl.className = "form-status";
+  resetPasswordVisibility();
 
   if (mode === "signup") {
     title.textContent = "Create your Spin Vinyl account";
@@ -3147,6 +3181,7 @@ async function onSignedIn(user) {
   document.getElementById("accountSection").hidden = false;
   showAuthOverlay(false);
 
+  resetSessionUiState();
   await loadData();
   maybeShowOnboarding();
 }
@@ -3158,11 +3193,27 @@ function onSignedOut() {
   document.getElementById("authForm").reset();
   setAuthMode("signin");
   document.getElementById("onboardingScreen").hidden = true;
+  resetSessionUiState();
+  allRecords = [];
+  wishlist = [];
   showAuthOverlay(true);
 }
 
 function setupAuth() {
   document.getElementById("authForm").addEventListener("submit", handleAuthSubmit);
+
+  document.getElementById("authPasswordToggle").addEventListener("click", () => {
+    const input = document.getElementById("authPassword");
+    const btn = document.getElementById("authPasswordToggle");
+    const isVisible = input.type === "text";
+
+    input.type = isVisible ? "password" : "text";
+    btn.setAttribute("aria-pressed", String(!isVisible));
+    btn.setAttribute("aria-label", isVisible ? "Show password" : "Hide password");
+    btn.innerHTML = isVisible
+      ? '<i class="ti ti-eye" aria-hidden="true"></i>'
+      : '<i class="ti ti-eye-off" aria-hidden="true"></i>';
+  });
 
   document.getElementById("authToggleBtn").addEventListener("click", () => {
     setAuthMode(authMode === "signup" ? "signin" : "signup");
@@ -3183,9 +3234,15 @@ function setupAuth() {
 
 function maybeShowOnboarding() {
   const screen = document.getElementById("onboardingScreen");
+  console.log("maybeShowOnboarding:", {
+    screenFound: !!screen,
+    allRecordsLength: allRecords.length,
+    wishlistLength: wishlist.length,
+  });
 
   if (allRecords.length === 0 && wishlist.length === 0) {
     screen.hidden = false;
+    console.log("Onboarding screen shown, hidden =", screen.hidden);
   } else {
     screen.hidden = true;
   }

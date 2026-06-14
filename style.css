@@ -574,6 +574,38 @@ h1 {
   gap: 0.75rem;
 }
 
+.password-field-wrap {
+  position: relative;
+  display: flex;
+}
+
+.password-field-wrap input {
+  flex: 1;
+  padding-right: 2.5rem;
+}
+
+.password-toggle-btn {
+  position: absolute;
+  right: 0.4rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  padding: 0.25rem;
+  line-height: 1;
+}
+
+.password-toggle-btn:hover,
+.password-toggle-btn[aria-pressed="true"] {
+  color: #caa15a;
+}
+
 .form-row-split > div {
   flex: 1;
   display: flex;
