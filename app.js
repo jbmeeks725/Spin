@@ -777,11 +777,6 @@ function getDisplayName() {
 
   if (currentProfile.preferred_name) return currentProfile.preferred_name;
 
-  const first = currentProfile.first_name || "";
-  const last = currentProfile.last_name || "";
-  const full = `${first} ${last}`.trim();
-  if (full) return full;
-
   if (currentProfile.username) return currentProfile.username;
 
   return currentUser?.email || "";
@@ -1089,8 +1084,6 @@ function renderBasicsView() {
   const p = currentProfile || {};
   const rows = [];
 
-  const fullName = [p.first_name, p.last_name].filter(Boolean).join(" ");
-  if (fullName) rows.push(["Name", fullName]);
   if (p.preferred_name) rows.push(["Preferred name", p.preferred_name]);
   if (p.username) rows.push(["Username", p.username]);
 
