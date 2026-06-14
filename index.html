@@ -147,24 +147,36 @@
             <input type="date" id="onboardBirthdate" />
           </div>
           <div class="form-row">
-            <label for="onboardGenres">Favorite genres</label>
-            <input type="text" id="onboardGenres" placeholder="e.g. Jazz, Rock, Funk" />
-            <p class="field-hint">Comma-separated.</p>
+            <label for="onboardGenresInput">Favorite genres</label>
+            <div class="tag-input" id="onboardGenresTagInput" data-field="favorite_genres" data-source="genres">
+              <div class="tag-input-chips"></div>
+              <input type="text" id="onboardGenresInput" placeholder="Start typing a genre..." autocomplete="off" />
+              <div class="tag-input-suggestions" hidden></div>
+            </div>
           </div>
           <div class="form-row">
-            <label for="onboardSubgenres">Favorite subgenres</label>
-            <input type="text" id="onboardSubgenres" placeholder="e.g. Modal Jazz, Psychedelic Rock" />
-            <p class="field-hint">Comma-separated.</p>
+            <label for="onboardSubgenresInput">Favorite subgenres</label>
+            <div class="tag-input" id="onboardSubgenresTagInput" data-field="favorite_subgenres" data-source="subgenres">
+              <div class="tag-input-chips"></div>
+              <input type="text" id="onboardSubgenresInput" placeholder="Start typing a subgenre..." autocomplete="off" />
+              <div class="tag-input-suggestions" hidden></div>
+            </div>
           </div>
           <div class="form-row">
-            <label for="onboardArtists">Favorite artists</label>
-            <input type="text" id="onboardArtists" placeholder="e.g. Miles Davis, Fleetwood Mac" />
-            <p class="field-hint">Comma-separated.</p>
+            <label for="onboardArtistsInput">Favorite artists</label>
+            <div class="tag-input" id="onboardArtistsTagInput" data-field="favorite_artists" data-source="artists">
+              <div class="tag-input-chips"></div>
+              <input type="text" id="onboardArtistsInput" placeholder="Start typing an artist..." autocomplete="off" />
+              <div class="tag-input-suggestions" hidden></div>
+            </div>
           </div>
           <div class="form-row">
-            <label for="onboardAlbums">Favorite albums</label>
-            <input type="text" id="onboardAlbums" placeholder="e.g. Kind of Blue, Rumours" />
-            <p class="field-hint">Comma-separated.</p>
+            <label for="onboardAlbumsInput">Favorite albums</label>
+            <div class="tag-input" id="onboardAlbumsTagInput" data-field="favorite_albums" data-source="albums">
+              <div class="tag-input-chips"></div>
+              <input type="text" id="onboardAlbumsInput" placeholder="Start typing an album..." autocomplete="off" />
+              <div class="tag-input-suggestions" hidden></div>
+            </div>
           </div>
           <div class="form-row">
             <label for="onboardTurntable">Turntable</label>
@@ -422,24 +434,36 @@
           <div id="tasteView" class="profile-field-list"></div>
           <form id="tasteForm" class="profile-edit-form" hidden>
             <div class="form-row">
-              <label for="tasteGenres">Favorite genres</label>
-              <input type="text" id="tasteGenres" placeholder="e.g. Jazz, Rock, Funk" />
-              <p class="field-hint">Comma-separated.</p>
+              <label for="tasteGenresInput">Favorite genres</label>
+              <div class="tag-input" id="tasteGenresTagInput" data-field="favorite_genres" data-source="genres">
+                <div class="tag-input-chips"></div>
+                <input type="text" id="tasteGenresInput" placeholder="Start typing a genre..." autocomplete="off" />
+                <div class="tag-input-suggestions" hidden></div>
+              </div>
             </div>
             <div class="form-row">
-              <label for="tasteSubgenres">Favorite subgenres</label>
-              <input type="text" id="tasteSubgenres" placeholder="e.g. Modal Jazz, Psychedelic Rock" />
-              <p class="field-hint">Comma-separated.</p>
+              <label for="tasteSubgenresInput">Favorite subgenres</label>
+              <div class="tag-input" id="tasteSubgenresTagInput" data-field="favorite_subgenres" data-source="subgenres">
+                <div class="tag-input-chips"></div>
+                <input type="text" id="tasteSubgenresInput" placeholder="Start typing a subgenre..." autocomplete="off" />
+                <div class="tag-input-suggestions" hidden></div>
+              </div>
             </div>
             <div class="form-row">
-              <label for="tasteArtists">Favorite artists</label>
-              <input type="text" id="tasteArtists" placeholder="e.g. Miles Davis, Fleetwood Mac" />
-              <p class="field-hint">Comma-separated.</p>
+              <label for="tasteArtistsInput">Favorite artists</label>
+              <div class="tag-input" id="tasteArtistsTagInput" data-field="favorite_artists" data-source="artists">
+                <div class="tag-input-chips"></div>
+                <input type="text" id="tasteArtistsInput" placeholder="Start typing an artist..." autocomplete="off" />
+                <div class="tag-input-suggestions" hidden></div>
+              </div>
             </div>
             <div class="form-row">
-              <label for="tasteAlbums">Favorite albums</label>
-              <input type="text" id="tasteAlbums" placeholder="e.g. Kind of Blue, Rumours" />
-              <p class="field-hint">Comma-separated.</p>
+              <label for="tasteAlbumsInput">Favorite albums</label>
+              <div class="tag-input" id="tasteAlbumsTagInput" data-field="favorite_albums" data-source="albums">
+                <div class="tag-input-chips"></div>
+                <input type="text" id="tasteAlbumsInput" placeholder="Start typing an album..." autocomplete="off" />
+                <div class="tag-input-suggestions" hidden></div>
+              </div>
             </div>
             <div id="tasteStatus" class="form-status"></div>
             <div class="form-actions">

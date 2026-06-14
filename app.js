@@ -288,6 +288,42 @@ function renderCards(filtered) {
 
     card.appendChild(coverWrap);
 
+    // Favorite buttons (album + artist)
+    const favWrap = document.createElement("div");
+    favWrap.className = "favorite-controls";
+
+    const albumFav = parseFavoriteFlags(r);
+
+    const albumFavBtn = document.createElement("button");
+    albumFavBtn.type = "button";
+    albumFavBtn.className = "favorite-btn favorite-album-btn";
+    albumFavBtn.innerHTML = '<i class="ti ti-star" aria-hidden="true"></i>';
+    albumFavBtn.title = albumFav.isAlbumFavorite ? "Remove album from favorites" : "Favorite this album";
+    albumFavBtn.setAttribute("aria-pressed", String(albumFav.isAlbumFavorite));
+    albumFavBtn.classList.toggle("active", albumFav.isAlbumFavorite);
+    albumFavBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      toggleFavorite("favorite_albums", r.album, albumFavBtn);
+    });
+
+    const artistFavBtn = document.createElement("button");
+    artistFavBtn.type = "button";
+    artistFavBtn.className = "favorite-btn favorite-artist-btn";
+    artistFavBtn.innerHTML = '<i class="ti ti-user-star" aria-hidden="true"></i>';
+    artistFavBtn.title = albumFav.isArtistFavorite
+      ? `Remove ${r.artist} from favorite artists`
+      : `Favorite ${r.artist}`;
+    artistFavBtn.setAttribute("aria-pressed", String(albumFav.isArtistFavorite));
+    artistFavBtn.classList.toggle("active", albumFav.isArtistFavorite);
+    artistFavBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      toggleFavorite("favorite_artists", r.artist, artistFavBtn);
+    });
+
+    favWrap.appendChild(albumFavBtn);
+    favWrap.appendChild(artistFavBtn);
+    coverWrap.appendChild(favWrap);
+
     // Info block
     const info = document.createElement("div");
     info.className = "record-info";
@@ -775,11 +811,176 @@ function calculateAge(birthdateStr) {
   return age;
 }
 
-function parseCommaList(value) {
-  return value
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
+// ------------ Tag input (autocomplete multi-select) ------------
+
+function getTagSuggestionSource(source) {
+  switch (source) {
+    case "genres":
+      return genres.map((g) => g.name);
+    case "subgenres":
+      return subgenres.map((sg) => sg.name);
+    case "artists":
+      return Array.from(new Set(allRecords.map((r) => r.artist))).sort();
+    case "albums":
+      return Array.from(new Set(allRecords.map((r) => r.album))).sort();
+    default:
+      return [];
+  }
+}
+
+function getTagInputValues(container) {
+  return Array.from(container.querySelectorAll(".tag-input-chip"))
+    .map((chip) => chip.dataset.value);
+}
+
+function setTagInputValues(container, values) {
+  const chipsWrap = container.querySelector(".tag-input-chips");
+  chipsWrap.innerHTML = "";
+  (values || []).forEach((value) => addTagChip(container, value));
+}
+
+function addTagChip(container, value) {
+  const trimmed = value.trim();
+  if (!trimmed) return;
+
+  const existing = getTagInputValues(container);
+  if (existing.some((v) => v.toLowerCase() === trimmed.toLowerCase())) return;
+
+  const chipsWrap = container.querySelector(".tag-input-chips");
+
+  const chip = document.createElement("span");
+  chip.className = "tag-input-chip";
+  chip.dataset.value = trimmed;
+
+  const label = document.createElement("span");
+  label.textContent = trimmed;
+
+  const removeBtn = document.createElement("button");
+  removeBtn.type = "button";
+  removeBtn.setAttribute("aria-label", `Remove ${trimmed}`);
+  removeBtn.textContent = "\u2715";
+  removeBtn.addEventListener("click", () => {
+    chip.remove();
+  });
+
+  chip.appendChild(label);
+  chip.appendChild(removeBtn);
+  chipsWrap.appendChild(chip);
+}
+
+function setupTagInput(container) {
+  const input = container.querySelector("input");
+  const suggestionsBox = container.querySelector(".tag-input-suggestions");
+  const source = container.dataset.source;
+
+  let highlightedIndex = -1;
+
+  function getFilteredSuggestions() {
+    const query = input.value.trim().toLowerCase();
+    if (!query) return [];
+
+    const existing = new Set(getTagInputValues(container).map((v) => v.toLowerCase()));
+    const candidates = getTagSuggestionSource(source);
+
+    return candidates
+      .filter((c) => c.toLowerCase().includes(query) && !existing.has(c.toLowerCase()))
+      .slice(0, 8);
+  }
+
+  function renderSuggestions() {
+    const matches = getFilteredSuggestions();
+    const query = input.value.trim();
+
+    suggestionsBox.innerHTML = "";
+    highlightedIndex = -1;
+
+    matches.forEach((match) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "tag-input-suggestion";
+      btn.textContent = match;
+      btn.addEventListener("mousedown", (e) => {
+        e.preventDefault();
+        addTagChip(container, match);
+        input.value = "";
+        suggestionsBox.hidden = true;
+        input.focus();
+      });
+      suggestionsBox.appendChild(btn);
+    });
+
+    if (query) {
+      const existing = new Set(getTagInputValues(container).map((v) => v.toLowerCase()));
+      const exactMatch = matches.some((m) => m.toLowerCase() === query.toLowerCase());
+      if (!exactMatch && !existing.has(query.toLowerCase())) {
+        const addBtn = document.createElement("button");
+        addBtn.type = "button";
+        addBtn.className = "tag-input-suggestion tag-input-suggestion-add";
+        addBtn.textContent = `Add "${query}"`;
+        addBtn.addEventListener("mousedown", (e) => {
+          e.preventDefault();
+          addTagChip(container, query);
+          input.value = "";
+          suggestionsBox.hidden = true;
+          input.focus();
+        });
+        suggestionsBox.appendChild(addBtn);
+      }
+    }
+
+    suggestionsBox.hidden = suggestionsBox.children.length === 0;
+  }
+
+  input.addEventListener("input", renderSuggestions);
+  input.addEventListener("focus", renderSuggestions);
+
+  input.addEventListener("blur", () => {
+    // Delay so a suggestion click (mousedown) registers first
+    setTimeout(() => {
+      suggestionsBox.hidden = true;
+    }, 100);
+  });
+
+  input.addEventListener("keydown", (e) => {
+    const options = Array.from(suggestionsBox.querySelectorAll(".tag-input-suggestion"));
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (options.length === 0) return;
+      highlightedIndex = (highlightedIndex + 1) % options.length;
+      options.forEach((o, i) => o.classList.toggle("highlighted", i === highlightedIndex));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (options.length === 0) return;
+      highlightedIndex = (highlightedIndex - 1 + options.length) % options.length;
+      options.forEach((o, i) => o.classList.toggle("highlighted", i === highlightedIndex));
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (highlightedIndex >= 0 && options[highlightedIndex]) {
+        options[highlightedIndex].dispatchEvent(new MouseEvent("mousedown"));
+      } else if (input.value.trim()) {
+        addTagChip(container, input.value);
+        input.value = "";
+        suggestionsBox.hidden = true;
+      }
+    } else if (e.key === ",") {
+      e.preventDefault();
+      if (input.value.trim()) {
+        addTagChip(container, input.value);
+        input.value = "";
+        renderSuggestions();
+      }
+    } else if (e.key === "Backspace" && input.value === "") {
+      const chips = container.querySelectorAll(".tag-input-chip");
+      if (chips.length > 0) {
+        chips[chips.length - 1].remove();
+      }
+    }
+  });
+}
+
+function setupAllTagInputs() {
+  document.querySelectorAll(".tag-input").forEach((container) => setupTagInput(container));
 }
 
 function refreshAccountButton() {
@@ -789,6 +990,54 @@ function refreshAccountButton() {
   const accountAvatar = document.getElementById("accountAvatarImg");
   if (accountAvatar) {
     accountAvatar.src = getAvatarUrl();
+  }
+}
+
+// ------------ Favorites (collection -> profile taste) ------------
+
+function parseFavoriteFlags(record) {
+  const albums = currentProfile?.favorite_albums || [];
+  const artists = currentProfile?.favorite_artists || [];
+
+  return {
+    isAlbumFavorite: albums.some((a) => a.toLowerCase() === record.album.toLowerCase()),
+    isArtistFavorite: artists.some((a) => a.toLowerCase() === record.artist.toLowerCase()),
+  };
+}
+
+async function toggleFavorite(field, value, btn) {
+  if (!currentUser) return;
+
+  const current = currentProfile?.[field] || [];
+  const isActive = current.some((v) => v.toLowerCase() === value.toLowerCase());
+
+  const updated = isActive
+    ? current.filter((v) => v.toLowerCase() !== value.toLowerCase())
+    : [...current, value];
+
+  btn.disabled = true;
+
+  try {
+    await saveProfileFields({ [field]: updated });
+
+    const nowActive = !isActive;
+    btn.classList.toggle("active", nowActive);
+    btn.setAttribute("aria-pressed", String(nowActive));
+
+    if (field === "favorite_albums") {
+      btn.title = nowActive ? "Remove album from favorites" : "Favorite this album";
+    } else {
+      btn.title = nowActive ? `Remove ${value} from favorite artists` : `Favorite ${value}`;
+    }
+
+    if (currentPage === "profile") {
+      renderTasteView();
+    }
+  } catch (err) {
+    console.error(err);
+    setStatus("Couldn't update favorites. See console for details.");
+  } finally {
+    btn.disabled = false;
   }
 }
 
@@ -948,10 +1197,10 @@ function fillBasicsForm() {
 
 function fillTasteForm() {
   const p = currentProfile || {};
-  document.getElementById("tasteGenres").value = (p.favorite_genres || []).join(", ");
-  document.getElementById("tasteSubgenres").value = (p.favorite_subgenres || []).join(", ");
-  document.getElementById("tasteArtists").value = (p.favorite_artists || []).join(", ");
-  document.getElementById("tasteAlbums").value = (p.favorite_albums || []).join(", ");
+  setTagInputValues(document.getElementById("tasteGenresTagInput"), p.favorite_genres || []);
+  setTagInputValues(document.getElementById("tasteSubgenresTagInput"), p.favorite_subgenres || []);
+  setTagInputValues(document.getElementById("tasteArtistsTagInput"), p.favorite_artists || []);
+  setTagInputValues(document.getElementById("tasteAlbumsTagInput"), p.favorite_albums || []);
 }
 
 function fillSystemForm() {
@@ -1030,10 +1279,10 @@ async function handleTasteSubmit(event) {
 
   try {
     await saveProfileFields({
-      favorite_genres: parseCommaList(document.getElementById("tasteGenres").value),
-      favorite_subgenres: parseCommaList(document.getElementById("tasteSubgenres").value),
-      favorite_artists: parseCommaList(document.getElementById("tasteArtists").value),
-      favorite_albums: parseCommaList(document.getElementById("tasteAlbums").value),
+      favorite_genres: getTagInputValues(document.getElementById("tasteGenresTagInput")),
+      favorite_subgenres: getTagInputValues(document.getElementById("tasteSubgenresTagInput")),
+      favorite_artists: getTagInputValues(document.getElementById("tasteArtistsTagInput")),
+      favorite_albums: getTagInputValues(document.getElementById("tasteAlbumsTagInput")),
     });
 
     statusEl.textContent = "Saved.";
@@ -3858,10 +4107,10 @@ async function handleOnboardingMoreSubmit(event) {
       state: document.getElementById("onboardState").value.trim() || null,
       country: document.getElementById("onboardCountry").value.trim() || null,
       birthdate: document.getElementById("onboardBirthdate").value || null,
-      favorite_genres: parseCommaList(document.getElementById("onboardGenres").value),
-      favorite_subgenres: parseCommaList(document.getElementById("onboardSubgenres").value),
-      favorite_artists: parseCommaList(document.getElementById("onboardArtists").value),
-      favorite_albums: parseCommaList(document.getElementById("onboardAlbums").value),
+      favorite_genres: getTagInputValues(document.getElementById("onboardGenresTagInput")),
+      favorite_subgenres: getTagInputValues(document.getElementById("onboardSubgenresTagInput")),
+      favorite_artists: getTagInputValues(document.getElementById("onboardArtistsTagInput")),
+      favorite_albums: getTagInputValues(document.getElementById("onboardAlbumsTagInput")),
       turntable: document.getElementById("onboardTurntable").value.trim() || null,
       cartridge: document.getElementById("onboardCartridge").value.trim() || null,
       receiver: document.getElementById("onboardReceiver").value.trim() || null,
@@ -3947,5 +4196,6 @@ document.addEventListener("DOMContentLoaded", () => {
   setupEvents();
   setupOnboarding();
   setupProfile();
+  setupAllTagInputs();
   setupAuth();
 });
