@@ -67,26 +67,133 @@
     <div class="onboarding-content">
       <img src="icon-192.png" alt="" class="onboarding-logo" />
       <h1 class="onboarding-title">Welcome to Spin Vinyl</h1>
-      <p class="onboarding-tagline">How would you like to get started?</p>
 
-      <div class="onboarding-options">
-        <button type="button" id="onboardImportBtn" class="onboarding-option">
-          <i class="ti ti-table-import" aria-hidden="true"></i>
-          <span class="onboarding-option-title">Import a spreadsheet</span>
-          <span class="onboarding-option-desc">Bring in your collection or wishlist from a .xlsx, .xls, or .csv file</span>
-        </button>
+      <div id="onboardingStep1">
+        <p class="onboarding-tagline">How would you like to get started?</p>
 
-        <button type="button" id="onboardAddBtn" class="onboarding-option">
-          <i class="ti ti-disc" aria-hidden="true"></i>
-          <span class="onboarding-option-title">Add records one by one</span>
-          <span class="onboarding-option-desc">Scan a barcode or enter details manually, starting with your favorites</span>
-        </button>
+        <div class="onboarding-options">
+          <button type="button" id="onboardImportBtn" class="onboarding-option">
+            <i class="ti ti-table-import" aria-hidden="true"></i>
+            <span class="onboarding-option-title">Import a spreadsheet</span>
+            <span class="onboarding-option-desc">Bring in your collection or wishlist from a .xlsx, .xls, or .csv file</span>
+          </button>
 
-        <button type="button" id="onboardExploreBtn" class="onboarding-option">
-          <i class="ti ti-compass" aria-hidden="true"></i>
-          <span class="onboarding-option-title">Explore first</span>
-          <span class="onboarding-option-desc">Take a look around before adding anything</span>
-        </button>
+          <button type="button" id="onboardAddBtn" class="onboarding-option">
+            <i class="ti ti-disc" aria-hidden="true"></i>
+            <span class="onboarding-option-title">Add records one by one</span>
+            <span class="onboarding-option-desc">Scan a barcode or enter details manually, starting with your favorites</span>
+          </button>
+
+          <button type="button" id="onboardExploreBtn" class="onboarding-option">
+            <i class="ti ti-compass" aria-hidden="true"></i>
+            <span class="onboarding-option-title">Explore first</span>
+            <span class="onboarding-option-desc">Take a look around before adding anything</span>
+          </button>
+        </div>
+      </div>
+
+      <div id="onboardingStep2" hidden>
+        <p class="onboarding-tagline">A few essentials for your profile</p>
+
+        <form id="onboardingBasicsForm" class="onboarding-form">
+          <div class="form-row-split">
+            <div>
+              <label for="onboardFirstName">First name *</label>
+              <input type="text" id="onboardFirstName" required />
+            </div>
+            <div>
+              <label for="onboardLastName">Last name *</label>
+              <input type="text" id="onboardLastName" required />
+            </div>
+          </div>
+          <div class="form-row">
+            <label for="onboardUsername">Username *</label>
+            <input type="text" id="onboardUsername" placeholder="e.g. recordcollector42" required />
+            <p class="field-hint">Shown on your profile button instead of your email.</p>
+          </div>
+
+          <div id="onboardingStep2Status" class="form-status"></div>
+
+          <div class="onboarding-step-actions">
+            <button type="submit" class="btn-primary">Continue</button>
+          </div>
+        </form>
+      </div>
+
+      <div id="onboardingStep3" hidden>
+        <p class="onboarding-tagline">Optional - tell us more (you can always edit this later)</p>
+
+        <form id="onboardingMoreForm" class="onboarding-form">
+          <div class="form-row">
+            <label for="onboardPreferredName">Preferred name</label>
+            <input type="text" id="onboardPreferredName" placeholder="What should we call you?" />
+          </div>
+          <div class="form-row-split">
+            <div>
+              <label for="onboardCity">City</label>
+              <input type="text" id="onboardCity" />
+            </div>
+            <div>
+              <label for="onboardState">State / Province</label>
+              <input type="text" id="onboardState" />
+            </div>
+          </div>
+          <div class="form-row">
+            <label for="onboardCountry">Country</label>
+            <input type="text" id="onboardCountry" />
+          </div>
+          <div class="form-row">
+            <label for="onboardBirthdate">Birthdate</label>
+            <input type="date" id="onboardBirthdate" />
+          </div>
+          <div class="form-row">
+            <label for="onboardGenres">Favorite genres</label>
+            <input type="text" id="onboardGenres" placeholder="e.g. Jazz, Rock, Funk" />
+            <p class="field-hint">Comma-separated.</p>
+          </div>
+          <div class="form-row">
+            <label for="onboardSubgenres">Favorite subgenres</label>
+            <input type="text" id="onboardSubgenres" placeholder="e.g. Modal Jazz, Psychedelic Rock" />
+            <p class="field-hint">Comma-separated.</p>
+          </div>
+          <div class="form-row">
+            <label for="onboardArtists">Favorite artists</label>
+            <input type="text" id="onboardArtists" placeholder="e.g. Miles Davis, Fleetwood Mac" />
+            <p class="field-hint">Comma-separated.</p>
+          </div>
+          <div class="form-row">
+            <label for="onboardAlbums">Favorite albums</label>
+            <input type="text" id="onboardAlbums" placeholder="e.g. Kind of Blue, Rumours" />
+            <p class="field-hint">Comma-separated.</p>
+          </div>
+          <div class="form-row">
+            <label for="onboardTurntable">Turntable</label>
+            <input type="text" id="onboardTurntable" />
+          </div>
+          <div class="form-row">
+            <label for="onboardCartridge">Cartridge</label>
+            <input type="text" id="onboardCartridge" />
+          </div>
+          <div class="form-row">
+            <label for="onboardReceiver">Receiver</label>
+            <input type="text" id="onboardReceiver" />
+          </div>
+          <div class="form-row">
+            <label for="onboardSpeakers">Speakers</label>
+            <input type="text" id="onboardSpeakers" />
+          </div>
+          <div class="form-row">
+            <label for="onboardSubwoofer">Subwoofer</label>
+            <input type="text" id="onboardSubwoofer" />
+          </div>
+
+          <div id="onboardingStep3Status" class="form-status"></div>
+
+          <div class="onboarding-step-actions">
+            <button type="button" id="onboardingSkipBtn" class="btn-secondary">Skip for now</button>
+            <button type="submit" class="btn-primary">Save and continue</button>
+          </div>
+        </form>
       </div>
     </div>
   </div>
@@ -101,7 +208,7 @@
     </div>
     <div id="accountSection" class="account-section" hidden>
       <button type="button" id="accountBtn" class="account-btn">
-        <i class="ti ti-user-circle" aria-hidden="true"></i>
+        <img id="accountAvatarImg" src="icon-512.png" alt="" class="account-avatar" />
         <span id="accountEmail" class="account-email"></span>
       </button>
     </div>
@@ -214,27 +321,169 @@
   </section>
 
   <section id="profileSection" hidden>
-    <div class="profile-card">
+    <div class="profile-page">
       <button type="button" id="profileBackBtn" class="link-btn profile-back-btn">
         <i class="ti ti-arrow-left" aria-hidden="true"></i> Back
       </button>
 
-      <div class="profile-header">
-        <i class="ti ti-user-circle profile-icon" aria-hidden="true"></i>
-        <div>
-          <h2 id="profileEmail" class="profile-email"></h2>
-          <p class="field-hint" id="profileMemberSince"></p>
+      <div class="profile-grid">
+        <div class="profile-card profile-identity">
+          <div class="profile-avatar-wrap">
+            <img id="profileAvatarImg" src="icon-512.png" alt="" class="profile-avatar" />
+            <button type="button" id="profileAvatarEditBtn" class="profile-avatar-edit" aria-label="Change profile picture">
+              <i class="ti ti-camera" aria-hidden="true"></i>
+            </button>
+          </div>
+          <div class="profile-identity-info">
+            <h2 id="profileDisplayName" class="profile-display-name">—</h2>
+            <p id="profileUsername" class="profile-username"></p>
+            <p id="profileLocation" class="field-hint"></p>
+            <p id="profileEmail" class="profile-email"></p>
+            <p class="field-hint" id="profileMemberSince"></p>
+          </div>
+          <div class="stat-row profile-stat-row">
+            <div class="stat">
+              <span class="stat-value" id="profileStatRecords">—</span>
+              <span class="stat-label">Records</span>
+            </div>
+            <div class="stat">
+              <span class="stat-value" id="profileStatWishlist">—</span>
+              <span class="stat-label">Wishlist</span>
+            </div>
+            <div class="stat">
+              <span class="stat-value stat-value-text" id="profileStatAge">—</span>
+              <span class="stat-label">Age</span>
+            </div>
+          </div>
         </div>
-      </div>
 
-      <div class="stat-row">
-        <div class="stat">
-          <span class="stat-value" id="profileStatRecords">—</span>
-          <span class="stat-label">Records</span>
+        <div class="profile-card">
+          <div class="profile-card-header">
+            <h2>Basics</h2>
+            <button type="button" id="editBasicsBtn" class="icon-btn" aria-label="Edit basics" title="Edit">
+              <i class="ti ti-pencil" aria-hidden="true"></i>
+            </button>
+          </div>
+          <div id="basicsView" class="profile-field-list"></div>
+          <form id="basicsForm" class="profile-edit-form" hidden>
+            <div class="form-row-split">
+              <div>
+                <label for="basicsFirstName">First name</label>
+                <input type="text" id="basicsFirstName" />
+              </div>
+              <div>
+                <label for="basicsLastName">Last name</label>
+                <input type="text" id="basicsLastName" />
+              </div>
+            </div>
+            <div class="form-row">
+              <label for="basicsPreferredName">Preferred name</label>
+              <input type="text" id="basicsPreferredName" placeholder="What should we call you?" />
+            </div>
+            <div class="form-row">
+              <label for="basicsUsername">Username</label>
+              <input type="text" id="basicsUsername" placeholder="e.g. recordcollector42" />
+              <p class="field-hint">Shown on your profile button instead of your email.</p>
+            </div>
+            <div class="form-row-split">
+              <div>
+                <label for="basicsCity">City</label>
+                <input type="text" id="basicsCity" />
+              </div>
+              <div>
+                <label for="basicsState">State / Province</label>
+                <input type="text" id="basicsState" />
+              </div>
+            </div>
+            <div class="form-row">
+              <label for="basicsCountry">Country</label>
+              <input type="text" id="basicsCountry" />
+            </div>
+            <div class="form-row">
+              <label for="basicsBirthdate">Birthdate</label>
+              <input type="date" id="basicsBirthdate" />
+              <p class="field-hint">Only your age is shown on your profile, not your birthdate.</p>
+            </div>
+            <div id="basicsStatus" class="form-status"></div>
+            <div class="form-actions">
+              <button type="button" id="cancelBasicsBtn" class="btn-secondary">Cancel</button>
+              <button type="submit" class="btn-primary">Save</button>
+            </div>
+          </form>
         </div>
-        <div class="stat">
-          <span class="stat-value" id="profileStatWishlist">—</span>
-          <span class="stat-label">Wishlist</span>
+
+        <div class="profile-card">
+          <div class="profile-card-header">
+            <h2>Music Taste</h2>
+            <button type="button" id="editTasteBtn" class="icon-btn" aria-label="Edit music taste" title="Edit">
+              <i class="ti ti-pencil" aria-hidden="true"></i>
+            </button>
+          </div>
+          <div id="tasteView" class="profile-field-list"></div>
+          <form id="tasteForm" class="profile-edit-form" hidden>
+            <div class="form-row">
+              <label for="tasteGenres">Favorite genres</label>
+              <input type="text" id="tasteGenres" placeholder="e.g. Jazz, Rock, Funk" />
+              <p class="field-hint">Comma-separated.</p>
+            </div>
+            <div class="form-row">
+              <label for="tasteSubgenres">Favorite subgenres</label>
+              <input type="text" id="tasteSubgenres" placeholder="e.g. Modal Jazz, Psychedelic Rock" />
+              <p class="field-hint">Comma-separated.</p>
+            </div>
+            <div class="form-row">
+              <label for="tasteArtists">Favorite artists</label>
+              <input type="text" id="tasteArtists" placeholder="e.g. Miles Davis, Fleetwood Mac" />
+              <p class="field-hint">Comma-separated.</p>
+            </div>
+            <div class="form-row">
+              <label for="tasteAlbums">Favorite albums</label>
+              <input type="text" id="tasteAlbums" placeholder="e.g. Kind of Blue, Rumours" />
+              <p class="field-hint">Comma-separated.</p>
+            </div>
+            <div id="tasteStatus" class="form-status"></div>
+            <div class="form-actions">
+              <button type="button" id="cancelTasteBtn" class="btn-secondary">Cancel</button>
+              <button type="submit" class="btn-primary">Save</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="profile-card">
+          <div class="profile-card-header">
+            <h2>System</h2>
+            <button type="button" id="editSystemBtn" class="icon-btn" aria-label="Edit system" title="Edit">
+              <i class="ti ti-pencil" aria-hidden="true"></i>
+            </button>
+          </div>
+          <div id="systemView" class="profile-field-list"></div>
+          <form id="systemForm" class="profile-edit-form" hidden>
+            <div class="form-row">
+              <label for="systemTurntable">Turntable</label>
+              <input type="text" id="systemTurntable" />
+            </div>
+            <div class="form-row">
+              <label for="systemCartridge">Cartridge</label>
+              <input type="text" id="systemCartridge" />
+            </div>
+            <div class="form-row">
+              <label for="systemReceiver">Receiver</label>
+              <input type="text" id="systemReceiver" />
+            </div>
+            <div class="form-row">
+              <label for="systemSpeakers">Speakers</label>
+              <input type="text" id="systemSpeakers" />
+            </div>
+            <div class="form-row">
+              <label for="systemSubwoofer">Subwoofer</label>
+              <input type="text" id="systemSubwoofer" />
+            </div>
+            <div id="systemStatus" class="form-status"></div>
+            <div class="form-actions">
+              <button type="button" id="cancelSystemBtn" class="btn-secondary">Cancel</button>
+              <button type="submit" class="btn-primary">Save</button>
+            </div>
+          </form>
         </div>
       </div>
 
@@ -243,6 +492,27 @@
       </div>
     </div>
   </section>
+
+  <!-- Avatar picker modal -->
+  <div id="avatarOverlay" class="modal-overlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="avatarTitle">
+      <div class="modal-header">
+        <h2 id="avatarTitle">Choose a profile picture</h2>
+        <button type="button" id="closeAvatarBtn" class="modal-close" aria-label="Close">&times;</button>
+      </div>
+
+      <p class="field-hint">Pick one of these, or upload your own image.</p>
+
+      <div id="avatarPresetGrid" class="avatar-preset-grid"></div>
+
+      <div class="form-row">
+        <label for="avatarFile">Upload your own</label>
+        <input type="file" id="avatarFile" accept="image/*" />
+      </div>
+
+      <div id="avatarStatus" class="form-status"></div>
+    </div>
+  </div>
 
   <section id="atAGlanceSection" hidden>
     <h2>My Collection — At a Glance</h2>

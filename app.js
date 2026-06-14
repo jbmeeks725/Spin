@@ -695,7 +695,217 @@ function renderHome() {
   renderWishlistHighlights();
 }
 
+// ------------ Profile data ------------
+
+function avatarPathForUser(extension) {
+  return `${currentUser.id}/avatar.${extension}`;
+}
+
+async function loadProfile() {
+  try {
+    const { data, error } = await supabaseClient
+      .from("profiles")
+      .select("*")
+      .eq("user_id", currentUser.id)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    currentProfile = data || null;
+  } catch (err) {
+    console.error(err);
+    currentProfile = null;
+  }
+}
+
+async function saveProfileFields(fields) {
+  const payload = {
+    user_id: currentUser.id,
+    ...fields,
+  };
+
+  const { data, error } = await supabaseClient
+    .from("profiles")
+    .upsert(payload, { onConflict: "user_id" })
+    .select("*")
+    .single();
+
+  if (error) throw error;
+
+  currentProfile = data;
+  return data;
+}
+
+function getDisplayName() {
+  if (!currentProfile) return currentUser?.email || "";
+
+  if (currentProfile.preferred_name) return currentProfile.preferred_name;
+
+  const first = currentProfile.first_name || "";
+  const last = currentProfile.last_name || "";
+  const full = `${first} ${last}`.trim();
+  if (full) return full;
+
+  if (currentProfile.username) return currentProfile.username;
+
+  return currentUser?.email || "";
+}
+
+function getAccountLabel() {
+  if (currentProfile?.username) return currentProfile.username;
+  return currentUser?.email || "";
+}
+
+function getAvatarUrl() {
+  return currentProfile?.avatar_url || "icon-512.png";
+}
+
+function calculateAge(birthdateStr) {
+  if (!birthdateStr) return null;
+  const birthdate = new Date(birthdateStr);
+  if (isNaN(birthdate.getTime())) return null;
+
+  const today = new Date();
+  let age = today.getFullYear() - birthdate.getFullYear();
+  const hasHadBirthdayThisYear =
+    today.getMonth() > birthdate.getMonth() ||
+    (today.getMonth() === birthdate.getMonth() && today.getDate() >= birthdate.getDate());
+  if (!hasHadBirthdayThisYear) age--;
+
+  return age;
+}
+
+function parseCommaList(value) {
+  return value
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function refreshAccountButton() {
+  const label = getAccountLabel();
+  document.getElementById("accountEmail").textContent = label;
+
+  const accountAvatar = document.getElementById("accountAvatarImg");
+  if (accountAvatar) {
+    accountAvatar.src = getAvatarUrl();
+  }
+}
+
+// ------------ Profile rendering ------------
+
+function buildProfileField(label, value) {
+  const row = document.createElement("div");
+  row.className = "profile-field";
+
+  const labelEl = document.createElement("span");
+  labelEl.className = "profile-field-label";
+  labelEl.textContent = label;
+
+  const valueEl = document.createElement("span");
+  valueEl.className = "profile-field-value";
+  valueEl.textContent = value;
+
+  row.appendChild(labelEl);
+  row.appendChild(valueEl);
+  return row;
+}
+
+function buildProfileTagRow(label, items) {
+  const row = document.createElement("div");
+  row.className = "profile-field";
+
+  const labelEl = document.createElement("span");
+  labelEl.className = "profile-field-label";
+  labelEl.textContent = label;
+
+  const tagList = document.createElement("div");
+  tagList.className = "profile-tag-list";
+  items.forEach((item) => {
+    const tag = document.createElement("span");
+    tag.className = "profile-tag";
+    tag.textContent = item;
+    tagList.appendChild(tag);
+  });
+
+  row.appendChild(labelEl);
+  row.appendChild(tagList);
+  return row;
+}
+
+function renderBasicsView() {
+  const view = document.getElementById("basicsView");
+  view.innerHTML = "";
+
+  const p = currentProfile || {};
+  const rows = [];
+
+  const fullName = [p.first_name, p.last_name].filter(Boolean).join(" ");
+  if (fullName) rows.push(["Name", fullName]);
+  if (p.preferred_name) rows.push(["Preferred name", p.preferred_name]);
+  if (p.username) rows.push(["Username", p.username]);
+
+  const location = [p.city, p.state, p.country].filter(Boolean).join(", ");
+  if (location) rows.push(["Location", location]);
+
+  if (p.birthdate) {
+    const age = calculateAge(p.birthdate);
+    if (age !== null) rows.push(["Age", String(age)]);
+  }
+
+  rows.forEach(([label, value]) => view.appendChild(buildProfileField(label, value)));
+}
+
+function renderTasteView() {
+  const view = document.getElementById("tasteView");
+  view.innerHTML = "";
+
+  const p = currentProfile || {};
+  const sections = [
+    ["Favorite genres", p.favorite_genres],
+    ["Favorite subgenres", p.favorite_subgenres],
+    ["Favorite artists", p.favorite_artists],
+    ["Favorite albums", p.favorite_albums],
+  ];
+
+  sections.forEach(([label, items]) => {
+    if (items && items.length > 0) {
+      view.appendChild(buildProfileTagRow(label, items));
+    }
+  });
+}
+
+function renderSystemView() {
+  const view = document.getElementById("systemView");
+  view.innerHTML = "";
+
+  const p = currentProfile || {};
+  const rows = [
+    ["Turntable", p.turntable],
+    ["Cartridge", p.cartridge],
+    ["Receiver", p.receiver],
+    ["Speakers", p.speakers],
+    ["Subwoofer", p.subwoofer],
+  ];
+
+  rows.forEach(([label, value]) => {
+    if (value) view.appendChild(buildProfileField(label, value));
+  });
+}
+
 function renderProfile() {
+  document.getElementById("profileAvatarImg").src = getAvatarUrl();
+  document.getElementById("profileDisplayName").textContent = getDisplayName();
+
+  const usernameEl = document.getElementById("profileUsername");
+  usernameEl.textContent = currentProfile?.username ? `@${currentProfile.username}` : "";
+
+  const locationEl = document.getElementById("profileLocation");
+  const location = [currentProfile?.city, currentProfile?.state, currentProfile?.country]
+    .filter(Boolean)
+    .join(", ");
+  locationEl.textContent = location;
+
   document.getElementById("profileEmail").textContent = currentUser?.email || "";
 
   const memberSinceEl = document.getElementById("profileMemberSince");
@@ -713,6 +923,278 @@ function renderProfile() {
 
   document.getElementById("profileStatRecords").textContent = allRecords.length;
   document.getElementById("profileStatWishlist").textContent = wishlist.length;
+
+  const age = calculateAge(currentProfile?.birthdate);
+  document.getElementById("profileStatAge").textContent = age !== null ? String(age) : "—";
+
+  renderBasicsView();
+  renderTasteView();
+  renderSystemView();
+}
+
+// ------------ Profile editing ------------
+
+function fillBasicsForm() {
+  const p = currentProfile || {};
+  document.getElementById("basicsFirstName").value = p.first_name || "";
+  document.getElementById("basicsLastName").value = p.last_name || "";
+  document.getElementById("basicsPreferredName").value = p.preferred_name || "";
+  document.getElementById("basicsUsername").value = p.username || "";
+  document.getElementById("basicsCity").value = p.city || "";
+  document.getElementById("basicsState").value = p.state || "";
+  document.getElementById("basicsCountry").value = p.country || "";
+  document.getElementById("basicsBirthdate").value = p.birthdate || "";
+}
+
+function fillTasteForm() {
+  const p = currentProfile || {};
+  document.getElementById("tasteGenres").value = (p.favorite_genres || []).join(", ");
+  document.getElementById("tasteSubgenres").value = (p.favorite_subgenres || []).join(", ");
+  document.getElementById("tasteArtists").value = (p.favorite_artists || []).join(", ");
+  document.getElementById("tasteAlbums").value = (p.favorite_albums || []).join(", ");
+}
+
+function fillSystemForm() {
+  const p = currentProfile || {};
+  document.getElementById("systemTurntable").value = p.turntable || "";
+  document.getElementById("systemCartridge").value = p.cartridge || "";
+  document.getElementById("systemReceiver").value = p.receiver || "";
+  document.getElementById("systemSpeakers").value = p.speakers || "";
+  document.getElementById("systemSubwoofer").value = p.subwoofer || "";
+}
+
+function toggleProfileEdit(section, editing) {
+  const view = document.getElementById(`${section}View`);
+  const form = document.getElementById(`${section}Form`);
+  view.hidden = editing;
+  form.hidden = !editing;
+
+  if (editing) {
+    if (section === "basics") fillBasicsForm();
+    if (section === "taste") fillTasteForm();
+    if (section === "system") fillSystemForm();
+  }
+}
+
+async function handleBasicsSubmit(event) {
+  event.preventDefault();
+
+  const statusEl = document.getElementById("basicsStatus");
+  const submitBtn = event.target.querySelector("button[type=submit]");
+
+  const username = document.getElementById("basicsUsername").value.trim();
+
+  submitBtn.disabled = true;
+  statusEl.textContent = "Saving...";
+  statusEl.className = "form-status";
+
+  try {
+    await saveProfileFields({
+      first_name: document.getElementById("basicsFirstName").value.trim() || null,
+      last_name: document.getElementById("basicsLastName").value.trim() || null,
+      preferred_name: document.getElementById("basicsPreferredName").value.trim() || null,
+      username: username || null,
+      city: document.getElementById("basicsCity").value.trim() || null,
+      state: document.getElementById("basicsState").value.trim() || null,
+      country: document.getElementById("basicsCountry").value.trim() || null,
+      birthdate: document.getElementById("basicsBirthdate").value || null,
+    });
+
+    statusEl.textContent = "Saved.";
+    statusEl.className = "form-status form-status-success";
+    refreshAccountButton();
+    renderProfile();
+    toggleProfileEdit("basics", false);
+  } catch (err) {
+    console.error(err);
+    if (err.code === "23505") {
+      statusEl.textContent = "That username is already taken.";
+    } else {
+      statusEl.textContent = "Couldn't save. Check console for details.";
+    }
+    statusEl.className = "form-status form-status-error";
+  } finally {
+    submitBtn.disabled = false;
+  }
+}
+
+async function handleTasteSubmit(event) {
+  event.preventDefault();
+
+  const statusEl = document.getElementById("tasteStatus");
+  const submitBtn = event.target.querySelector("button[type=submit]");
+
+  submitBtn.disabled = true;
+  statusEl.textContent = "Saving...";
+  statusEl.className = "form-status";
+
+  try {
+    await saveProfileFields({
+      favorite_genres: parseCommaList(document.getElementById("tasteGenres").value),
+      favorite_subgenres: parseCommaList(document.getElementById("tasteSubgenres").value),
+      favorite_artists: parseCommaList(document.getElementById("tasteArtists").value),
+      favorite_albums: parseCommaList(document.getElementById("tasteAlbums").value),
+    });
+
+    statusEl.textContent = "Saved.";
+    statusEl.className = "form-status form-status-success";
+    renderProfile();
+    toggleProfileEdit("taste", false);
+  } catch (err) {
+    console.error(err);
+    statusEl.textContent = "Couldn't save. Check console for details.";
+    statusEl.className = "form-status form-status-error";
+  } finally {
+    submitBtn.disabled = false;
+  }
+}
+
+async function handleSystemSubmit(event) {
+  event.preventDefault();
+
+  const statusEl = document.getElementById("systemStatus");
+  const submitBtn = event.target.querySelector("button[type=submit]");
+
+  submitBtn.disabled = true;
+  statusEl.textContent = "Saving...";
+  statusEl.className = "form-status";
+
+  try {
+    await saveProfileFields({
+      turntable: document.getElementById("systemTurntable").value.trim() || null,
+      cartridge: document.getElementById("systemCartridge").value.trim() || null,
+      receiver: document.getElementById("systemReceiver").value.trim() || null,
+      speakers: document.getElementById("systemSpeakers").value.trim() || null,
+      subwoofer: document.getElementById("systemSubwoofer").value.trim() || null,
+    });
+
+    statusEl.textContent = "Saved.";
+    statusEl.className = "form-status form-status-success";
+    renderProfile();
+    toggleProfileEdit("system", false);
+  } catch (err) {
+    console.error(err);
+    statusEl.textContent = "Couldn't save. Check console for details.";
+    statusEl.className = "form-status form-status-error";
+  } finally {
+    submitBtn.disabled = false;
+  }
+}
+
+// ------------ Avatar picker ------------
+
+function openAvatarModal() {
+  const overlay = document.getElementById("avatarOverlay");
+  const statusEl = document.getElementById("avatarStatus");
+  statusEl.textContent = "";
+  statusEl.className = "form-status";
+  document.getElementById("avatarFile").value = "";
+
+  const grid = document.getElementById("avatarPresetGrid");
+  grid.innerHTML = "";
+
+  AVATAR_PRESETS.forEach((preset) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "avatar-preset-option";
+    if (currentProfile?.avatar_url === preset.file) {
+      btn.classList.add("active");
+    }
+
+    const img = document.createElement("img");
+    img.src = preset.file;
+    img.alt = preset.label;
+
+    btn.appendChild(img);
+    btn.addEventListener("click", () => selectPresetAvatar(preset));
+    grid.appendChild(btn);
+  });
+
+  overlay.hidden = false;
+}
+
+function closeAvatarModal() {
+  document.getElementById("avatarOverlay").hidden = true;
+}
+
+async function selectPresetAvatar(preset) {
+  const statusEl = document.getElementById("avatarStatus");
+  statusEl.textContent = "Saving...";
+  statusEl.className = "form-status";
+
+  try {
+    await saveProfileFields({ avatar_url: preset.file });
+    renderProfile();
+    refreshAccountButton();
+    statusEl.textContent = "Saved.";
+    statusEl.className = "form-status form-status-success";
+    openAvatarModal();
+  } catch (err) {
+    console.error(err);
+    statusEl.textContent = "Couldn't save. Check console for details.";
+    statusEl.className = "form-status form-status-error";
+  }
+}
+
+async function handleAvatarFileChange(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+
+  const statusEl = document.getElementById("avatarStatus");
+  statusEl.textContent = "Uploading...";
+  statusEl.className = "form-status";
+
+  try {
+    const resized = await resizeImageFile(file, 400, 0.85);
+    const arrayBuffer = await resized.arrayBuffer();
+    const path = avatarPathForUser("jpg");
+
+    const { error: uploadError } = await supabaseClient.storage
+      .from("avatars")
+      .upload(path, arrayBuffer, {
+        contentType: "image/jpeg",
+        upsert: true,
+      });
+
+    if (uploadError) throw uploadError;
+
+    const { data: urlData } = supabaseClient.storage.from("avatars").getPublicUrl(path);
+    // Bust cache so the new image shows immediately even with same path
+    const cacheBustedUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+
+    await saveProfileFields({ avatar_url: cacheBustedUrl });
+    renderProfile();
+    refreshAccountButton();
+
+    statusEl.textContent = "Saved.";
+    statusEl.className = "form-status form-status-success";
+  } catch (err) {
+    console.error(err);
+    statusEl.textContent = "Couldn't upload. Check console for details.";
+    statusEl.className = "form-status form-status-error";
+  }
+}
+
+function setupProfile() {
+  document.getElementById("editBasicsBtn").addEventListener("click", () => toggleProfileEdit("basics", true));
+  document.getElementById("cancelBasicsBtn").addEventListener("click", () => toggleProfileEdit("basics", false));
+  document.getElementById("basicsForm").addEventListener("submit", handleBasicsSubmit);
+
+  document.getElementById("editTasteBtn").addEventListener("click", () => toggleProfileEdit("taste", true));
+  document.getElementById("cancelTasteBtn").addEventListener("click", () => toggleProfileEdit("taste", false));
+  document.getElementById("tasteForm").addEventListener("submit", handleTasteSubmit);
+
+  document.getElementById("editSystemBtn").addEventListener("click", () => toggleProfileEdit("system", true));
+  document.getElementById("cancelSystemBtn").addEventListener("click", () => toggleProfileEdit("system", false));
+  document.getElementById("systemForm").addEventListener("submit", handleSystemSubmit);
+
+  document.getElementById("profileAvatarEditBtn").addEventListener("click", () => openAvatarModal());
+  document.getElementById("closeAvatarBtn").addEventListener("click", () => closeAvatarModal());
+  document.getElementById("avatarFile").addEventListener("change", handleAvatarFileChange);
+
+  document.getElementById("avatarOverlay").addEventListener("click", (e) => {
+    if (e.target.id === "avatarOverlay") closeAvatarModal();
+  });
 }
 
 function resetSessionUiState() {
@@ -3114,6 +3596,19 @@ function setupEvents() {
 // ------------ Auth ------------
 
 let currentUser = null;
+let currentProfile = null;
+
+const AVATAR_PRESETS = [
+  { id: "record", file: "avatars/avatar-record.png", label: "Vinyl record" },
+  { id: "acoustic-guitar", file: "avatars/avatar-acoustic-guitar.png", label: "Acoustic guitar" },
+  { id: "electric-guitar", file: "avatars/avatar-electric-guitar.png", label: "Electric guitar" },
+  { id: "drums", file: "avatars/avatar-drums.png", label: "Drums" },
+  { id: "piano", file: "avatars/avatar-piano.png", label: "Piano" },
+  { id: "saxophone", file: "avatars/avatar-saxophone.png", label: "Saxophone" },
+  { id: "trumpet", file: "avatars/avatar-trumpet.png", label: "Trumpet" },
+  { id: "violin", file: "avatars/avatar-violin.png", label: "Violin" },
+  { id: "notes", file: "avatars/avatar-notes.png", label: "Music notes" },
+];
 let authMode = "signin"; // "signin" | "signup"
 
 function showAuthOverlay(show) {
@@ -3207,19 +3702,22 @@ async function handleSignOut() {
 async function onSignedIn(user) {
   currentUser = user;
 
-  document.getElementById("accountEmail").textContent = user.email || "";
   document.getElementById("accountSection").hidden = false;
   showAuthOverlay(false);
 
   resetSessionUiState();
+  await loadProfile();
+  refreshAccountButton();
   await loadData();
   maybeShowOnboarding();
 }
 
 function onSignedOut() {
   currentUser = null;
+  currentProfile = null;
 
   document.getElementById("accountSection").hidden = true;
+  document.getElementById("accountAvatarImg").src = "icon-512.png";
   document.getElementById("authForm").reset();
   setAuthMode("signin");
   document.getElementById("onboardingScreen").hidden = true;
@@ -3269,41 +3767,149 @@ function setupAuth() {
 
 function maybeShowOnboarding() {
   const screen = document.getElementById("onboardingScreen");
-  console.log("maybeShowOnboarding:", {
-    screenFound: !!screen,
-    allRecordsLength: allRecords.length,
-    wishlistLength: wishlist.length,
-  });
 
   if (allRecords.length === 0 && wishlist.length === 0) {
+    showOnboardingStep(1);
     screen.hidden = false;
-    console.log("Onboarding screen shown, hidden =", screen.hidden);
   } else {
     screen.hidden = true;
   }
+}
+
+function showOnboardingStep(step) {
+  document.getElementById("onboardingStep1").hidden = step !== 1;
+  document.getElementById("onboardingStep2").hidden = step !== 2;
+  document.getElementById("onboardingStep3").hidden = step !== 3;
 }
 
 function dismissOnboarding() {
   document.getElementById("onboardingScreen").hidden = true;
 }
 
-function setupOnboarding() {
-  document.getElementById("onboardImportBtn").addEventListener("click", () => {
-    dismissOnboarding();
+let onboardingDestination = null;
+
+function goToOnboardingDestination() {
+  dismissOnboarding();
+
+  if (onboardingDestination === "import") {
     setPage("collection");
     openImportModal();
+  } else if (onboardingDestination === "add") {
+    setPage("collection");
+    openAddRecordModal();
+  } else {
+    setPage("home");
+  }
+
+  onboardingDestination = null;
+}
+
+async function handleOnboardingBasicsSubmit(event) {
+  event.preventDefault();
+
+  const statusEl = document.getElementById("onboardingStep2Status");
+  const submitBtn = event.target.querySelector("button[type=submit]");
+
+  const firstName = document.getElementById("onboardFirstName").value.trim();
+  const lastName = document.getElementById("onboardLastName").value.trim();
+  const username = document.getElementById("onboardUsername").value.trim();
+
+  submitBtn.disabled = true;
+  statusEl.textContent = "Saving...";
+  statusEl.className = "form-status";
+
+  try {
+    await saveProfileFields({
+      first_name: firstName,
+      last_name: lastName,
+      username,
+    });
+
+    refreshAccountButton();
+    statusEl.textContent = "";
+    showOnboardingStep(3);
+  } catch (err) {
+    console.error(err);
+    if (err.code === "23505") {
+      statusEl.textContent = "That username is already taken - please choose another.";
+    } else {
+      statusEl.textContent = "Couldn't save. Check console for details.";
+    }
+    statusEl.className = "form-status form-status-error";
+  } finally {
+    submitBtn.disabled = false;
+  }
+}
+
+async function handleOnboardingMoreSubmit(event) {
+  event.preventDefault();
+
+  const statusEl = document.getElementById("onboardingStep3Status");
+  const submitBtn = event.target.querySelector("button[type=submit]");
+
+  submitBtn.disabled = true;
+  statusEl.textContent = "Saving...";
+  statusEl.className = "form-status";
+
+  try {
+    await saveProfileFields({
+      preferred_name: document.getElementById("onboardPreferredName").value.trim() || null,
+      city: document.getElementById("onboardCity").value.trim() || null,
+      state: document.getElementById("onboardState").value.trim() || null,
+      country: document.getElementById("onboardCountry").value.trim() || null,
+      birthdate: document.getElementById("onboardBirthdate").value || null,
+      favorite_genres: parseCommaList(document.getElementById("onboardGenres").value),
+      favorite_subgenres: parseCommaList(document.getElementById("onboardSubgenres").value),
+      favorite_artists: parseCommaList(document.getElementById("onboardArtists").value),
+      favorite_albums: parseCommaList(document.getElementById("onboardAlbums").value),
+      turntable: document.getElementById("onboardTurntable").value.trim() || null,
+      cartridge: document.getElementById("onboardCartridge").value.trim() || null,
+      receiver: document.getElementById("onboardReceiver").value.trim() || null,
+      speakers: document.getElementById("onboardSpeakers").value.trim() || null,
+      subwoofer: document.getElementById("onboardSubwoofer").value.trim() || null,
+      onboarding_completed: true,
+    });
+
+    refreshAccountButton();
+    goToOnboardingDestination();
+  } catch (err) {
+    console.error(err);
+    statusEl.textContent = "Couldn't save. Check console for details.";
+    statusEl.className = "form-status form-status-error";
+  } finally {
+    submitBtn.disabled = false;
+  }
+}
+
+async function handleOnboardingSkip() {
+  try {
+    await saveProfileFields({ onboarding_completed: true });
+    refreshAccountButton();
+  } catch (err) {
+    console.error(err);
+  }
+  goToOnboardingDestination();
+}
+
+function setupOnboarding() {
+  document.getElementById("onboardImportBtn").addEventListener("click", () => {
+    onboardingDestination = "import";
+    showOnboardingStep(2);
   });
 
   document.getElementById("onboardAddBtn").addEventListener("click", () => {
-    dismissOnboarding();
-    setPage("collection");
-    openAddRecordModal();
+    onboardingDestination = "add";
+    showOnboardingStep(2);
   });
 
   document.getElementById("onboardExploreBtn").addEventListener("click", () => {
-    dismissOnboarding();
-    setPage("home");
+    onboardingDestination = "explore";
+    showOnboardingStep(2);
   });
+
+  document.getElementById("onboardingBasicsForm").addEventListener("submit", handleOnboardingBasicsSubmit);
+  document.getElementById("onboardingMoreForm").addEventListener("submit", handleOnboardingMoreSubmit);
+  document.getElementById("onboardingSkipBtn").addEventListener("click", () => handleOnboardingSkip());
 }
 
 
@@ -3340,5 +3946,6 @@ document.addEventListener("DOMContentLoaded", () => {
   setupSplashScreen();
   setupEvents();
   setupOnboarding();
+  setupProfile();
   setupAuth();
 });
