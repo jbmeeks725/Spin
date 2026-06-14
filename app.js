@@ -3140,14 +3140,15 @@ async function handleSignOut() {
   }
 }
 
-function onSignedIn(user) {
+async function onSignedIn(user) {
   currentUser = user;
 
   document.getElementById("accountEmail").textContent = user.email || "";
   document.getElementById("accountSection").hidden = false;
   showAuthOverlay(false);
 
-  loadData();
+  await loadData();
+  maybeShowOnboarding();
 }
 
 function onSignedOut() {
@@ -3156,6 +3157,7 @@ function onSignedOut() {
   document.getElementById("accountSection").hidden = true;
   document.getElementById("authForm").reset();
   setAuthMode("signin");
+  document.getElementById("onboardingScreen").hidden = true;
   showAuthOverlay(true);
 }
 
@@ -3174,6 +3176,41 @@ function setupAuth() {
     } else {
       onSignedOut();
     }
+  });
+}
+
+// ------------ Onboarding ------------
+
+function maybeShowOnboarding() {
+  const screen = document.getElementById("onboardingScreen");
+
+  if (allRecords.length === 0 && wishlist.length === 0) {
+    screen.hidden = false;
+  } else {
+    screen.hidden = true;
+  }
+}
+
+function dismissOnboarding() {
+  document.getElementById("onboardingScreen").hidden = true;
+}
+
+function setupOnboarding() {
+  document.getElementById("onboardImportBtn").addEventListener("click", () => {
+    dismissOnboarding();
+    setPage("collection");
+    openImportModal();
+  });
+
+  document.getElementById("onboardAddBtn").addEventListener("click", () => {
+    dismissOnboarding();
+    setPage("collection");
+    openAddRecordModal();
+  });
+
+  document.getElementById("onboardExploreBtn").addEventListener("click", () => {
+    dismissOnboarding();
+    setPage("home");
   });
 }
 
@@ -3210,5 +3247,6 @@ function setupSplashScreen() {
 document.addEventListener("DOMContentLoaded", () => {
   setupSplashScreen();
   setupEvents();
+  setupOnboarding();
   setupAuth();
 });

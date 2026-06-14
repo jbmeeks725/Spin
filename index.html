@@ -5,6 +5,7 @@
   <title>Spin Vinyl - Keep Better Record of Your Records</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
 
   <!-- Icons -->
   <link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png" />
@@ -54,6 +55,34 @@
         <span id="authToggleLabel">Don't have an account?</span>
         <button type="button" id="authToggleBtn" class="link-btn">Create one</button>
       </p>
+    </div>
+  </div>
+
+  <div id="onboardingScreen" class="onboarding-screen" hidden>
+    <div class="onboarding-content">
+      <img src="icon-192.png" alt="" class="onboarding-logo" />
+      <h1 class="onboarding-title">Welcome to Spin Vinyl</h1>
+      <p class="onboarding-tagline">How would you like to get started?</p>
+
+      <div class="onboarding-options">
+        <button type="button" id="onboardImportBtn" class="onboarding-option">
+          <i class="ti ti-table-import" aria-hidden="true"></i>
+          <span class="onboarding-option-title">Import a spreadsheet</span>
+          <span class="onboarding-option-desc">Bring in your collection or wishlist from a .xlsx, .xls, or .csv file</span>
+        </button>
+
+        <button type="button" id="onboardAddBtn" class="onboarding-option">
+          <i class="ti ti-disc" aria-hidden="true"></i>
+          <span class="onboarding-option-title">Add records one by one</span>
+          <span class="onboarding-option-desc">Scan a barcode or enter details manually, starting with your favorites</span>
+        </button>
+
+        <button type="button" id="onboardExploreBtn" class="onboarding-option">
+          <i class="ti ti-compass" aria-hidden="true"></i>
+          <span class="onboarding-option-title">Explore first</span>
+          <span class="onboarding-option-desc">Take a look around before adding anything</span>
+        </button>
+      </div>
     </div>
   </div>
 
