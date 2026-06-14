@@ -100,8 +100,10 @@
       </div>
     </div>
     <div id="accountSection" class="account-section" hidden>
-      <span id="accountEmail" class="account-email"></span>
-      <button type="button" id="signOutBtn" class="btn-secondary">Sign out</button>
+      <button type="button" id="accountBtn" class="account-btn">
+        <i class="ti ti-user-circle" aria-hidden="true"></i>
+        <span id="accountEmail" class="account-email"></span>
+      </button>
     </div>
   </header>
   <section id="controls">
@@ -208,6 +210,37 @@
         <div id="recommendationsList" class="recommendations-list"></div>
       </div>
 
+    </div>
+  </section>
+
+  <section id="profileSection" hidden>
+    <div class="profile-card">
+      <button type="button" id="profileBackBtn" class="link-btn profile-back-btn">
+        <i class="ti ti-arrow-left" aria-hidden="true"></i> Back
+      </button>
+
+      <div class="profile-header">
+        <i class="ti ti-user-circle profile-icon" aria-hidden="true"></i>
+        <div>
+          <h2 id="profileEmail" class="profile-email"></h2>
+          <p class="field-hint" id="profileMemberSince"></p>
+        </div>
+      </div>
+
+      <div class="stat-row">
+        <div class="stat">
+          <span class="stat-value" id="profileStatRecords">—</span>
+          <span class="stat-label">Records</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value" id="profileStatWishlist">—</span>
+          <span class="stat-label">Wishlist</span>
+        </div>
+      </div>
+
+      <div class="profile-actions">
+        <button type="button" id="profileSignOutBtn" class="btn-secondary">Sign out</button>
+      </div>
     </div>
   </section>
 

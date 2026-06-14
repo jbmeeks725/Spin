@@ -695,6 +695,26 @@ function renderHome() {
   renderWishlistHighlights();
 }
 
+function renderProfile() {
+  document.getElementById("profileEmail").textContent = currentUser?.email || "";
+
+  const memberSinceEl = document.getElementById("profileMemberSince");
+  if (currentUser?.created_at) {
+    const date = new Date(currentUser.created_at);
+    const formatted = date.toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+    memberSinceEl.textContent = `Member since ${formatted}`;
+  } else {
+    memberSinceEl.textContent = "";
+  }
+
+  document.getElementById("profileStatRecords").textContent = allRecords.length;
+  document.getElementById("profileStatWishlist").textContent = wishlist.length;
+}
+
 function resetSessionUiState() {
   // Clear any transient UI left over from a previous account/session
   spotlightRecordId = null;
@@ -1220,16 +1240,19 @@ function setPage(page) {
   const wishlistBtn = document.getElementById("wishlistPageBtn");
 
   const homeSection = document.getElementById("homeSection");
+  const profileSection = document.getElementById("profileSection");
   const atAGlanceSection = document.getElementById("atAGlanceSection");
   const cardSection = document.getElementById("cardSection");
   const wishlistSection = document.getElementById("wishlistSection");
   const filterControls = document.getElementById("collectionFilters");
   const statusSection = document.getElementById("status");
   const gridDensity = document.getElementById("gridDensityControl");
+  const pageNav = document.getElementById("pageNav");
 
   const isHome = page === "home";
   const isCollection = page === "collection";
   const isWishlist = page === "wishlist";
+  const isProfile = page === "profile";
 
   [
     [homeBtn, isHome],
@@ -1241,17 +1264,24 @@ function setPage(page) {
   });
 
   homeSection.hidden = !isHome;
+  profileSection.hidden = !isProfile;
   atAGlanceSection.hidden = !isCollection;
   cardSection.hidden = !isCollection;
   wishlistSection.hidden = !isWishlist;
   filterControls.hidden = !isCollection;
-  statusSection.hidden = isHome;
-  gridDensity.hidden = isHome;
+  statusSection.hidden = isHome || isProfile;
+  gridDensity.hidden = isHome || isProfile;
+  pageNav.hidden = isProfile;
 
   document.getElementById("addRecordBtn").hidden = !isCollection;
   document.getElementById("addWishlistBtn").hidden = !isWishlist;
   document.getElementById("findAllDiscogsBtn").hidden = !isWishlist;
-  document.getElementById("importBtn").hidden = isHome;
+  document.getElementById("importBtn").hidden = isHome || isProfile;
+
+  if (isProfile) {
+    renderProfile();
+    return;
+  }
 
   render();
 }
@@ -3196,6 +3226,7 @@ function onSignedOut() {
   resetSessionUiState();
   allRecords = [];
   wishlist = [];
+  setPage("home");
   showAuthOverlay(true);
 }
 
@@ -3219,7 +3250,11 @@ function setupAuth() {
     setAuthMode(authMode === "signup" ? "signin" : "signup");
   });
 
-  document.getElementById("signOutBtn").addEventListener("click", () => handleSignOut());
+  document.getElementById("accountBtn").addEventListener("click", () => setPage("profile"));
+
+  document.getElementById("profileBackBtn").addEventListener("click", () => setPage("home"));
+
+  document.getElementById("profileSignOutBtn").addEventListener("click", () => handleSignOut());
 
   supabaseClient.auth.onAuthStateChange((event, session) => {
     if (session?.user) {

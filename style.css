@@ -321,6 +321,76 @@ header {
   max-width: 200px;
 }
 
+.account-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: 1px solid #1f2937;
+  border-radius: 999px;
+  padding: 0.35rem 0.9rem 0.35rem 0.6rem;
+  color: #e5e7eb;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.account-btn:hover,
+.account-btn:focus-visible {
+  border-color: #caa15a;
+  background: #111827;
+  outline: none;
+}
+
+.account-btn i {
+  font-size: 22px;
+  color: #caa15a;
+}
+
+/* ------------ Profile ------------ */
+
+.profile-card {
+  max-width: 480px;
+  margin: 1.5rem;
+  background: #020617;
+  border: 1px solid #1f2937;
+  border-radius: 8px;
+  padding: 1.25rem;
+}
+
+.profile-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  text-decoration: none;
+  margin-bottom: 1rem;
+}
+
+.profile-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.profile-icon {
+  font-size: 48px;
+  color: #caa15a;
+}
+
+.profile-email {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #f9fafb;
+  word-break: break-all;
+}
+
+.profile-actions {
+  margin-top: 1.25rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
 .brand {
   display: flex;
   align-items: center;
@@ -1506,16 +1576,18 @@ h1 {
 @media (max-width: 640px) {
   header {
     padding: 0.75rem 1rem;
-    flex-wrap: wrap;
   }
 
   .account-section {
-    width: 100%;
-    justify-content: space-between;
+    width: auto;
   }
 
   .account-email {
-    max-width: 60%;
+    max-width: 38vw;
+  }
+
+  .account-btn {
+    padding: 0.3rem 0.7rem 0.3rem 0.5rem;
   }
 
   .brand-logo {
@@ -1618,5 +1690,9 @@ h1 {
 
   .spotlight-cover-wrap {
     width: min(160px, 45%);
+  }
+
+  .profile-card {
+    margin: 0.75rem 1rem;
   }
 }
